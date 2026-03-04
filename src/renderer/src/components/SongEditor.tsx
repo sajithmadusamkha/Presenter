@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { SongWithSections, SongSection, SectionType } from '../../../shared/song-types'
 import SectionCard from './SectionCard'
 import SlidesTab from './SlidesTab'
@@ -22,23 +22,35 @@ const SECTION_TYPE_DEFAULTS: { type: SectionType; label: string }[] = [
 ]
 
 export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
-  const [song, setSong] = useState<SongWithSections | null>(null)
+  // `saved` = last persisted state from DB
+  // `draft` = local edits not yet saved
+  const [saved, setSaved] = useState<SongWithSections | null>(null)
+  const [draft, setDraft] = useState<SongWithSections | null>(null)
   const [tagInput, setTagInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [addingSection, setAddingSection] = useState(false)
   const [activeTab, setActiveTab] = useState<EditorTab>('words')
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const load = useCallback(async () => {
     const s = await window.presenterSongs.get(songId)
-    setSong(s)
+    setSaved(s)
+    setDraft(s)
     setTagInput('')
+    setShowDeleteConfirm(false)
   }, [songId])
 
-  useEffect(() => {
-    load()
-  }, [load])
+  useEffect(() => { load() }, [load])
 
-  if (!song) {
+  const isDirty = useRef(false)
+
+  // Track whether draft differs from saved
+  useEffect(() => {
+    if (!saved || !draft) { isDirty.current = false; return }
+    isDirty.current = JSON.stringify(draft) !== JSON.stringify(saved)
+  })
+
+  if (!draft || !saved) {
     return (
       <div className="flex h-full items-center justify-center">
         <span style={{ color: 'var(--color-text-muted)' }}>Loading…</span>
@@ -46,90 +58,120 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
     )
   }
 
-  // ── Field save helpers ────────────────────────────────────────────────────
+  const dirty = saved && draft && JSON.stringify(draft) !== JSON.stringify(saved)
 
-  const saveField = async (patch: { title?: string; artist?: string; tags?: string[] }): Promise<void> => {
-    const updated = await window.presenterSongs.update(song.id, patch)
-    if (updated) setSong((prev) => prev ? { ...prev, ...updated } : prev)
+  // ── Save all changes to DB ─────────────────────────────────────────────────
+
+  const handleSave = async (): Promise<void> => {
+    if (!draft) return
+    setSaving(true)
+    try {
+      // Save song fields
+      const updatedSong = await window.presenterSongs.update(draft.id, {
+        title: draft.title || 'Untitled',
+        artist: draft.artist ?? undefined,
+        tags: draft.tags
+      })
+
+      // Save all sections
+      const savedSections: SongSection[] = []
+      for (const section of draft.sections) {
+        const s = await window.presenterSongs.upsertSection({
+          id: section.id,
+          songId: draft.id,
+          type: section.type,
+          label: section.label,
+          content: section.content,
+          sortOrder: section.sortOrder
+        })
+        savedSections.push(s)
+      }
+
+      const newSaved: SongWithSections = {
+        ...(updatedSong ?? draft),
+        sections: savedSections
+      }
+      setSaved(newSaved)
+      setDraft(newSaved)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // ── Cancel: revert draft to last saved ────────────────────────────────────
+
+  const handleCancel = (): void => {
+    setDraft(saved)
+    setTagInput('')
   }
 
   // ── Tag management ────────────────────────────────────────────────────────
 
-  const addTag = async (): Promise<void> => {
+  const addTag = (): void => {
     const tag = tagInput.trim().toLowerCase()
-    if (!tag || song.tags.includes(tag)) { setTagInput(''); return }
-    const newTags = [...song.tags, tag]
-    await saveField({ tags: newTags })
-    setSong((prev) => prev ? { ...prev, tags: newTags } : prev)
+    if (!tag || draft.tags.includes(tag)) { setTagInput(''); return }
+    setDraft((prev) => prev ? { ...prev, tags: [...prev.tags, tag] } : prev)
     setTagInput('')
   }
 
-  const removeTag = async (tag: string): Promise<void> => {
-    const newTags = song.tags.filter((t) => t !== tag)
-    await saveField({ tags: newTags })
-    setSong((prev) => prev ? { ...prev, tags: newTags } : prev)
+  const removeTag = (tag: string): void => {
+    setDraft((prev) => prev ? { ...prev, tags: prev.tags.filter((t) => t !== tag) } : prev)
   }
 
-  // ── Section management ────────────────────────────────────────────────────
+  // ── Section management (draft only) ──────────────────────────────────────
 
-  const handleSectionChange = async (updated: SongSection): Promise<void> => {
-    setSaving(true)
-    const saved = await window.presenterSongs.upsertSection({
-      id: updated.id,
-      songId: song.id,
-      type: updated.type,
-      label: updated.label,
-      content: updated.content,
-      sortOrder: updated.sortOrder
-    })
-    setSong((prev) => {
+  const handleSectionChange = (updated: SongSection): void => {
+    setDraft((prev) => {
       if (!prev) return prev
       return {
         ...prev,
-        sections: prev.sections.map((s) => (s.id === saved.id ? saved : s))
+        sections: prev.sections.map((s) => (s.id === updated.id ? updated : s))
       }
     })
-    setSaving(false)
   }
 
   const handleSectionDelete = async (id: number): Promise<void> => {
+    // Delete from DB immediately (no undo), then remove from draft+saved
     await window.presenterSongs.deleteSection(id)
-    setSong((prev) => {
-      if (!prev) return prev
-      const sections = prev.sections
+    const removeSectionById = (song: SongWithSections): SongWithSections => ({
+      ...song,
+      sections: song.sections
         .filter((s) => s.id !== id)
         .map((s, i) => ({ ...s, sortOrder: i }))
-      return { ...prev, sections }
     })
+    setSaved((prev) => prev ? removeSectionById(prev) : prev)
+    setDraft((prev) => prev ? removeSectionById(prev) : prev)
   }
 
-  const handleMoveSection = async (index: number, direction: 'up' | 'down'): Promise<void> => {
-    const sections = [...song.sections]
-    const swapIndex = direction === 'up' ? index - 1 : index + 1
-    ;[sections[index], sections[swapIndex]] = [sections[swapIndex], sections[index]]
-    const reordered = sections.map((s, i) => ({ ...s, sortOrder: i }))
-    setSong((prev) => prev ? { ...prev, sections: reordered } : prev)
-    await window.presenterSongs.reorderSections(
-      song.id,
-      reordered.map((s) => s.id)
-    )
+  const handleMoveSection = (index: number, direction: 'up' | 'down'): void => {
+    setDraft((prev) => {
+      if (!prev) return prev
+      const sections = [...prev.sections]
+      const swapIndex = direction === 'up' ? index - 1 : index + 1
+      ;[sections[index], sections[swapIndex]] = [sections[swapIndex], sections[index]]
+      return { ...prev, sections: sections.map((s, i) => ({ ...s, sortOrder: i })) }
+    })
   }
 
   const addSection = async (type: SectionType, label: string): Promise<void> => {
-    const saved = await window.presenterSongs.upsertSection({
-      songId: song.id,
+    const saved_section = await window.presenterSongs.upsertSection({
+      songId: draft.id,
       type,
       label,
       content: '',
-      sortOrder: song.sections.length
+      sortOrder: draft.sections.length
     })
-    setSong((prev) => prev ? { ...prev, sections: [...prev.sections, saved] } : prev)
+    const addSection_ = (song: SongWithSections): SongWithSections => ({
+      ...song,
+      sections: [...song.sections, saved_section]
+    })
+    setSaved((prev) => prev ? addSection_(prev) : prev)
+    setDraft((prev) => prev ? addSection_(prev) : prev)
     setAddingSection(false)
   }
 
   const handleDeleteSong = async (): Promise<void> => {
-    if (!confirm(`Delete "${song.title}"? This cannot be undone.`)) return
-    await window.presenterSongs.delete(song.id)
+    await window.presenterSongs.delete(draft.id)
     onDeleted()
   }
 
@@ -139,14 +181,14 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
     <div className="flex h-full flex-col overflow-hidden">
       {/* Song header */}
       <div
-        className="flex-shrink-0 border-b p-4"
+        className="shrink-0 border-b p-4"
         style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-elevated)' }}
       >
         {/* Title */}
         <input
           type="text"
-          defaultValue={song.title}
-          onBlur={(e) => saveField({ title: e.target.value.trim() || 'Untitled' })}
+          value={draft.title}
+          onChange={(e) => setDraft((prev) => prev ? { ...prev, title: e.target.value } : prev)}
           className="mb-2 w-full bg-transparent text-xl font-bold outline-none"
           style={{ color: 'var(--color-text-primary)' }}
           placeholder="Song title"
@@ -155,8 +197,8 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
         {/* Artist */}
         <input
           type="text"
-          defaultValue={song.artist ?? ''}
-          onBlur={(e) => saveField({ artist: e.target.value.trim() || undefined })}
+          value={draft.artist ?? ''}
+          onChange={(e) => setDraft((prev) => prev ? { ...prev, artist: e.target.value } : prev)}
           className="mb-3 w-full bg-transparent text-sm outline-none"
           style={{ color: 'var(--color-text-muted)' }}
           placeholder="Artist / Author"
@@ -164,7 +206,7 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
 
         {/* Tags */}
         <div className="flex flex-wrap items-center gap-1.5">
-          {song.tags.map((tag) => (
+          {draft.tags.map((tag) => (
             <span
               key={tag}
               className="flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs"
@@ -191,18 +233,11 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
             style={{ color: 'var(--color-text-muted)', width: '4rem' }}
           />
         </div>
-
-        {/* Saving indicator */}
-        {saving && (
-          <p className="mt-1 text-xs" style={{ color: 'var(--color-text-muted)' }}>
-            Saving…
-          </p>
-        )}
       </div>
 
       {/* Tab bar */}
       <div
-        className="flex-shrink-0 flex border-b"
+        className="shrink-0 flex border-b"
         style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-elevated)' }}
       >
         {(['words', 'slides'] as EditorTab[]).map((tab) => (
@@ -223,24 +258,24 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
 
       {/* Tab content */}
       {activeTab === 'slides' ? (
-        <SlidesTab sections={song.sections} />
+        <SlidesTab sections={draft.sections} />
       ) : (
         <>
           {/* Words tab: section list */}
           <div className="flex-1 overflow-y-auto p-4">
             <div className="flex flex-col gap-3">
-              {song.sections.length === 0 && !addingSection && (
+              {draft.sections.length === 0 && !addingSection && (
                 <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                   No sections yet. Add one below.
                 </p>
               )}
 
-              {song.sections.map((section, index) => (
+              {draft.sections.map((section, index) => (
                 <SectionCard
                   key={section.id}
                   section={section}
                   isFirst={index === 0}
-                  isLast={index === song.sections.length - 1}
+                  isLast={index === draft.sections.length - 1}
                   onChange={handleSectionChange}
                   onDelete={() => handleSectionDelete(section.id)}
                   onMoveUp={() => handleMoveSection(index, 'up')}
@@ -293,18 +328,74 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
             </div>
           </div>
 
-          {/* Footer actions */}
+          {/* Footer */}
           <div
-            className="flex-shrink-0 flex justify-end border-t px-4 py-2"
-            style={{ borderColor: 'var(--color-border)' }}
+            className="shrink-0 border-t px-4 py-3"
+            style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-elevated)' }}
           >
-            <button
-              onClick={handleDeleteSong}
-              className="text-xs transition-colors hover:text-red-400"
-              style={{ color: 'var(--color-text-muted)' }}
-            >
-              Delete song
-            </button>
+            {showDeleteConfirm ? (
+              /* Delete confirmation */
+              <div className="flex items-center justify-between">
+                <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
+                  Delete &ldquo;{draft.title}&rdquo;? This cannot be undone.
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="rounded px-3 py-1.5 text-xs transition-colors"
+                    style={{ color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDeleteSong}
+                    className="rounded px-3 py-1.5 text-xs font-medium transition-colors"
+                    style={{ backgroundColor: '#dc2626', color: '#fff', border: '1px solid #dc2626' }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* Normal footer: Save / Cancel / Delete */
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="text-xs transition-colors hover:text-red-400"
+                  style={{ color: 'var(--color-text-muted)' }}
+                >
+                  Delete song
+                </button>
+                <div className="flex items-center gap-2">
+                  {saving && (
+                    <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                      Saving…
+                    </span>
+                  )}
+                  {dirty && !saving && (
+                    <button
+                      onClick={handleCancel}
+                      className="rounded px-3 py-1.5 text-xs transition-colors"
+                      style={{ color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || !dirty}
+                    className="rounded px-4 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+                    style={{
+                      backgroundColor: dirty && !saving ? 'var(--color-accent)' : 'var(--color-bg-overlay)',
+                      color: dirty && !saving ? '#fff' : 'var(--color-text-muted)',
+                      border: '1px solid ' + (dirty && !saving ? 'var(--color-accent)' : 'var(--color-border)')
+                    }}
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}

@@ -24609,109 +24609,142 @@ const SECTION_TYPE_DEFAULTS = [
   { type: "interlude", label: "Interlude" }
 ];
 function SongEditor({ songId, onDeleted }) {
-  const [song, setSong] = reactExports.useState(null);
+  const [saved, setSaved] = reactExports.useState(null);
+  const [draft, setDraft] = reactExports.useState(null);
   const [tagInput, setTagInput] = reactExports.useState("");
   const [saving, setSaving] = reactExports.useState(false);
   const [addingSection, setAddingSection] = reactExports.useState(false);
   const [activeTab, setActiveTab] = reactExports.useState("words");
+  const [showDeleteConfirm, setShowDeleteConfirm] = reactExports.useState(false);
   const load = reactExports.useCallback(async () => {
     const s = await window.presenterSongs.get(songId);
-    setSong(s);
+    setSaved(s);
+    setDraft(s);
     setTagInput("");
+    setShowDeleteConfirm(false);
   }, [songId]);
   reactExports.useEffect(() => {
     load();
   }, [load]);
-  if (!song) {
+  const isDirty = reactExports.useRef(false);
+  reactExports.useEffect(() => {
+    if (!saved || !draft) {
+      isDirty.current = false;
+      return;
+    }
+    isDirty.current = JSON.stringify(draft) !== JSON.stringify(saved);
+  });
+  if (!draft || !saved) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex h-full items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "var(--color-text-muted)" }, children: "Loading…" }) });
   }
-  const saveField = async (patch) => {
-    const updated = await window.presenterSongs.update(song.id, patch);
-    if (updated) setSong((prev) => prev ? { ...prev, ...updated } : prev);
+  const dirty = saved && draft && JSON.stringify(draft) !== JSON.stringify(saved);
+  const handleSave = async () => {
+    if (!draft) return;
+    setSaving(true);
+    try {
+      const updatedSong = await window.presenterSongs.update(draft.id, {
+        title: draft.title || "Untitled",
+        artist: draft.artist ?? void 0,
+        tags: draft.tags
+      });
+      const savedSections = [];
+      for (const section of draft.sections) {
+        const s = await window.presenterSongs.upsertSection({
+          id: section.id,
+          songId: draft.id,
+          type: section.type,
+          label: section.label,
+          content: section.content,
+          sortOrder: section.sortOrder
+        });
+        savedSections.push(s);
+      }
+      const newSaved = {
+        ...updatedSong ?? draft,
+        sections: savedSections
+      };
+      setSaved(newSaved);
+      setDraft(newSaved);
+    } finally {
+      setSaving(false);
+    }
   };
-  const addTag = async () => {
+  const handleCancel = () => {
+    setDraft(saved);
+    setTagInput("");
+  };
+  const addTag = () => {
     const tag = tagInput.trim().toLowerCase();
-    if (!tag || song.tags.includes(tag)) {
+    if (!tag || draft.tags.includes(tag)) {
       setTagInput("");
       return;
     }
-    const newTags = [...song.tags, tag];
-    await saveField({ tags: newTags });
-    setSong((prev) => prev ? { ...prev, tags: newTags } : prev);
+    setDraft((prev) => prev ? { ...prev, tags: [...prev.tags, tag] } : prev);
     setTagInput("");
   };
-  const removeTag = async (tag) => {
-    const newTags = song.tags.filter((t) => t !== tag);
-    await saveField({ tags: newTags });
-    setSong((prev) => prev ? { ...prev, tags: newTags } : prev);
+  const removeTag = (tag) => {
+    setDraft((prev) => prev ? { ...prev, tags: prev.tags.filter((t) => t !== tag) } : prev);
   };
-  const handleSectionChange = async (updated) => {
-    setSaving(true);
-    const saved = await window.presenterSongs.upsertSection({
-      id: updated.id,
-      songId: song.id,
-      type: updated.type,
-      label: updated.label,
-      content: updated.content,
-      sortOrder: updated.sortOrder
-    });
-    setSong((prev) => {
+  const handleSectionChange = (updated) => {
+    setDraft((prev) => {
       if (!prev) return prev;
       return {
         ...prev,
-        sections: prev.sections.map((s) => s.id === saved.id ? saved : s)
+        sections: prev.sections.map((s) => s.id === updated.id ? updated : s)
       };
     });
-    setSaving(false);
   };
   const handleSectionDelete = async (id) => {
     await window.presenterSongs.deleteSection(id);
-    setSong((prev) => {
+    const removeSectionById = (song) => ({
+      ...song,
+      sections: song.sections.filter((s) => s.id !== id).map((s, i) => ({ ...s, sortOrder: i }))
+    });
+    setSaved((prev) => prev ? removeSectionById(prev) : prev);
+    setDraft((prev) => prev ? removeSectionById(prev) : prev);
+  };
+  const handleMoveSection = (index, direction) => {
+    setDraft((prev) => {
       if (!prev) return prev;
-      const sections = prev.sections.filter((s) => s.id !== id).map((s, i) => ({ ...s, sortOrder: i }));
-      return { ...prev, sections };
+      const sections = [...prev.sections];
+      const swapIndex = direction === "up" ? index - 1 : index + 1;
+      [sections[index], sections[swapIndex]] = [sections[swapIndex], sections[index]];
+      return { ...prev, sections: sections.map((s, i) => ({ ...s, sortOrder: i })) };
     });
   };
-  const handleMoveSection = async (index, direction) => {
-    const sections = [...song.sections];
-    const swapIndex = direction === "up" ? index - 1 : index + 1;
-    [sections[index], sections[swapIndex]] = [sections[swapIndex], sections[index]];
-    const reordered = sections.map((s, i) => ({ ...s, sortOrder: i }));
-    setSong((prev) => prev ? { ...prev, sections: reordered } : prev);
-    await window.presenterSongs.reorderSections(
-      song.id,
-      reordered.map((s) => s.id)
-    );
-  };
   const addSection = async (type, label) => {
-    const saved = await window.presenterSongs.upsertSection({
-      songId: song.id,
+    const saved_section = await window.presenterSongs.upsertSection({
+      songId: draft.id,
       type,
       label,
       content: "",
-      sortOrder: song.sections.length
+      sortOrder: draft.sections.length
     });
-    setSong((prev) => prev ? { ...prev, sections: [...prev.sections, saved] } : prev);
+    const addSection_ = (song) => ({
+      ...song,
+      sections: [...song.sections, saved_section]
+    });
+    setSaved((prev) => prev ? addSection_(prev) : prev);
+    setDraft((prev) => prev ? addSection_(prev) : prev);
     setAddingSection(false);
   };
   const handleDeleteSong = async () => {
-    if (!confirm(`Delete "${song.title}"? This cannot be undone.`)) return;
-    await window.presenterSongs.delete(song.id);
+    await window.presenterSongs.delete(draft.id);
     onDeleted();
   };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-full flex-col overflow-hidden", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
       {
-        className: "flex-shrink-0 border-b p-4",
+        className: "shrink-0 border-b p-4",
         style: { borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-elevated)" },
         children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             "input",
             {
               type: "text",
-              defaultValue: song.title,
-              onBlur: (e) => saveField({ title: e.target.value.trim() || "Untitled" }),
+              value: draft.title,
+              onChange: (e) => setDraft((prev) => prev ? { ...prev, title: e.target.value } : prev),
               className: "mb-2 w-full bg-transparent text-xl font-bold outline-none",
               style: { color: "var(--color-text-primary)" },
               placeholder: "Song title"
@@ -24721,15 +24754,15 @@ function SongEditor({ songId, onDeleted }) {
             "input",
             {
               type: "text",
-              defaultValue: song.artist ?? "",
-              onBlur: (e) => saveField({ artist: e.target.value.trim() || void 0 }),
+              value: draft.artist ?? "",
+              onChange: (e) => setDraft((prev) => prev ? { ...prev, artist: e.target.value } : prev),
               className: "mb-3 w-full bg-transparent text-sm outline-none",
               style: { color: "var(--color-text-muted)" },
               placeholder: "Artist / Author"
             }
           ),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-1.5", children: [
-            song.tags.map((tag) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            draft.tags.map((tag) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "span",
               {
                 className: "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs",
@@ -24767,15 +24800,14 @@ function SongEditor({ songId, onDeleted }) {
                 style: { color: "var(--color-text-muted)", width: "4rem" }
               }
             )
-          ] }),
-          saving && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-1 text-xs", style: { color: "var(--color-text-muted)" }, children: "Saving…" })
+          ] })
         ]
       }
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       "div",
       {
-        className: "flex-shrink-0 flex border-b",
+        className: "shrink-0 flex border-b",
         style: { borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-elevated)" },
         children: ["words", "slides"].map((tab) => /* @__PURE__ */ jsxRuntimeExports.jsx(
           "button",
@@ -24793,15 +24825,15 @@ function SongEditor({ songId, onDeleted }) {
         ))
       }
     ),
-    activeTab === "slides" ? /* @__PURE__ */ jsxRuntimeExports.jsx(SlidesTab, { sections: song.sections }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    activeTab === "slides" ? /* @__PURE__ */ jsxRuntimeExports.jsx(SlidesTab, { sections: draft.sections }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto p-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-3", children: [
-        song.sections.length === 0 && !addingSection && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm", style: { color: "var(--color-text-muted)" }, children: "No sections yet. Add one below." }),
-        song.sections.map((section, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+        draft.sections.length === 0 && !addingSection && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm", style: { color: "var(--color-text-muted)" }, children: "No sections yet. Add one below." }),
+        draft.sections.map((section, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(
           SectionCard,
           {
             section,
             isFirst: index === 0,
-            isLast: index === song.sections.length - 1,
+            isLast: index === draft.sections.length - 1,
             onChange: handleSectionChange,
             onDelete: () => handleSectionDelete(section.id),
             onMoveUp: () => handleMoveSection(index, "up"),
@@ -24856,16 +24888,76 @@ function SongEditor({ songId, onDeleted }) {
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "div",
         {
-          className: "flex-shrink-0 flex justify-end border-t px-4 py-2",
-          style: { borderColor: "var(--color-border)" },
-          children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
-            {
-              onClick: handleDeleteSong,
-              className: "text-xs transition-colors hover:text-red-400",
-              style: { color: "var(--color-text-muted)" },
-              children: "Delete song"
-            }
+          className: "shrink-0 border-t px-4 py-3",
+          style: { borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-elevated)" },
+          children: showDeleteConfirm ? (
+            /* Delete confirmation */
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm", style: { color: "var(--color-text-primary)" }, children: [
+                "Delete “",
+                draft.title,
+                "”? This cannot be undone."
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    onClick: () => setShowDeleteConfirm(false),
+                    className: "rounded px-3 py-1.5 text-xs transition-colors",
+                    style: { color: "var(--color-text-muted)", border: "1px solid var(--color-border)" },
+                    children: "Cancel"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    onClick: handleDeleteSong,
+                    className: "rounded px-3 py-1.5 text-xs font-medium transition-colors",
+                    style: { backgroundColor: "#dc2626", color: "#fff", border: "1px solid #dc2626" },
+                    children: "Delete"
+                  }
+                )
+              ] })
+            ] })
+          ) : (
+            /* Normal footer: Save / Cancel / Delete */
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  onClick: () => setShowDeleteConfirm(true),
+                  className: "text-xs transition-colors hover:text-red-400",
+                  style: { color: "var(--color-text-muted)" },
+                  children: "Delete song"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                saving && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs", style: { color: "var(--color-text-muted)" }, children: "Saving…" }),
+                dirty && !saving && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    onClick: handleCancel,
+                    className: "rounded px-3 py-1.5 text-xs transition-colors",
+                    style: { color: "var(--color-text-muted)", border: "1px solid var(--color-border)" },
+                    children: "Cancel"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    onClick: handleSave,
+                    disabled: saving || !dirty,
+                    className: "rounded px-4 py-1.5 text-xs font-medium transition-colors disabled:opacity-40",
+                    style: {
+                      backgroundColor: dirty && !saving ? "var(--color-accent)" : "var(--color-bg-overlay)",
+                      color: dirty && !saving ? "#fff" : "var(--color-text-muted)",
+                      border: "1px solid " + (dirty && !saving ? "var(--color-accent)" : "var(--color-border)")
+                    },
+                    children: "Save"
+                  }
+                )
+              ] })
+            ] })
           )
         }
       )
