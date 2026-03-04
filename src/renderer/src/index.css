@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg-base: #0a0a0a;
+  --color-bg-elevated: #111111;
+  --color-bg-overlay: #1a1a1a;
+  --color-border: #262626;
+  --color-text-primary: #e8e8e8;
+  --color-text-muted: #6b6b6b;
+  --color-accent: #5b5fc7;
+  --color-live: #22c55e;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-primary);
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+/* Tiptap rich text editor */
+.tiptap-editor .tiptap {
+  min-height: 8rem;
+  padding: 0.5rem 0.625rem;
+  background-color: var(--color-bg-overlay);
+  border: 1px solid var(--color-border);
+  border-top: none;
+  border-radius: 0 0 0.25rem 0.25rem;
+  color: var(--color-text-primary);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  outline: none;
+}
+
+.tiptap-editor .tiptap:focus {
+  border-color: var(--color-accent);
+}
+
+.tiptap-editor .tiptap p {
+  margin: 0;
+}
+
+.tiptap-editor .tiptap p + p {
+  margin-top: 0.125rem;
+}
+
+/* Output / preview slide body HTML */
+.slide-body p {
+  margin: 0;
+  line-height: 1.5;
+}
