@@ -1,10 +1,12 @@
 "use strict";
 const electron = require("electron");
-const ipcChannels = require("./chunks/ipc-channels-DiQ1ewji.js");
+const ipcChannels = require("./chunks/ipc-channels-CqWWNnEz.js");
 electron.contextBridge.exposeInMainWorld("presenterControl", {
   goLive: (payload) => electron.ipcRenderer.invoke(ipcChannels.IPC.GO_LIVE, payload),
   blank: () => electron.ipcRenderer.invoke(ipcChannels.IPC.BLANK),
-  clear: () => electron.ipcRenderer.invoke(ipcChannels.IPC.CLEAR)
+  clear: () => electron.ipcRenderer.invoke(ipcChannels.IPC.CLEAR),
+  openSongEditor: (songId) => electron.ipcRenderer.invoke(ipcChannels.IPC.SONG_OPEN_EDITOR, songId),
+  closeEditor: () => electron.ipcRenderer.invoke(ipcChannels.IPC.EDITOR_CLOSE)
 });
 electron.contextBridge.exposeInMainWorld("presenterSongs", {
   list: (query) => electron.ipcRenderer.invoke(ipcChannels.IPC.SONG_LIST, query),

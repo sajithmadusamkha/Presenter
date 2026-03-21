@@ -1,42 +1,99 @@
 import { j as jsxRuntimeExports, r as reactExports, R as React$2, a as ReactDOM, c as client } from "./client-6dElx9E4.js";
-function Sidebar({ view, onViewChange }) {
-  const navItems = [
-    { id: "schedule", label: "Schedule" },
-    { id: "library", label: "Song Library" }
-  ];
+function Toolbar({
+  outputState,
+  hasSelection: hasSelection2,
+  liveTitle,
+  warning,
+  onGoLive,
+  onBlank,
+  onClear
+}) {
+  const isBlank = outputState === "blank";
+  const isLive = outputState === "live";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
-      className: "flex w-52 flex-shrink-0 flex-col border-r",
-      style: {
-        backgroundColor: "var(--color-bg-elevated)",
-        borderColor: "var(--color-border)"
-      },
+      className: "flex h-11 shrink-0 items-center gap-2 border-b px-3",
+      style: { backgroundColor: "var(--color-bg-elevated)", borderColor: "var(--color-border)" },
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "div",
+          "button",
           {
-            className: "border-b px-4 py-3 text-xs font-semibold uppercase tracking-widest",
-            style: { borderColor: "var(--color-border)", color: "var(--color-text-muted)" },
-            children: "Presenter"
+            className: "rounded px-2.5 py-1 text-xs transition-colors",
+            style: { color: "var(--color-text-muted)", border: "1px solid var(--color-border)" },
+            title: "New service (coming soon)",
+            children: "New"
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "flex-1 overflow-y-auto py-2", children: navItems.map((item) => {
-          const isActive2 = view === item.id;
-          return /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            className: "rounded px-2.5 py-1 text-xs transition-colors",
+            style: { color: "var(--color-text-muted)", border: "1px solid var(--color-border)" },
+            title: "Open service (coming soon)",
+            children: "Open"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-1.5", children: warning ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "h-1.5 w-1.5 rounded-full", style: { backgroundColor: "#ef4444" } }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "max-w-xs truncate font-mono text-xs", style: { color: "#ef4444" }, children: warning })
+        ] }) : isLive ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "span",
             {
-              onClick: () => onViewChange(item.id),
-              className: "w-full px-4 py-2 text-left text-sm transition-colors",
-              style: {
-                color: isActive2 ? "var(--color-accent)" : "var(--color-text-muted)",
-                backgroundColor: isActive2 ? "var(--color-bg-overlay)" : "transparent"
-              },
-              children: item.label
+              className: "h-1.5 w-1.5 animate-pulse rounded-full",
+              style: { backgroundColor: "var(--color-live)" }
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "max-w-xs truncate font-mono text-xs", style: { color: "var(--color-live)" }, children: [
+            "LIVE",
+            liveTitle ? ` — ${liveTitle}` : ""
+          ] })
+        ] }) : isBlank ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "h-1.5 w-1.5 animate-pulse rounded-full", style: { backgroundColor: "#f59e0b" } }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-mono text-xs", style: { color: "#f59e0b" }, children: "BLANK" })
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-mono text-xs", style: { color: "var(--color-text-muted)" }, children: "Output idle" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mx-2 h-4 w-px", style: { backgroundColor: "var(--color-border)" } }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            onClick: onGoLive,
+            disabled: !hasSelection2,
+            className: "flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-40",
+            style: { backgroundColor: "var(--color-accent)", color: "#fff" },
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "h-1.5 w-1.5 rounded-full", style: { backgroundColor: "var(--color-live)" } }),
+              "Go Live"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            onClick: onBlank,
+            className: "rounded px-3 py-1.5 text-xs font-medium transition-colors",
+            style: {
+              backgroundColor: isBlank ? "#92400e" : "var(--color-bg-overlay)",
+              color: isBlank ? "#fcd34d" : "var(--color-text-muted)",
+              border: `1px solid ${isBlank ? "#92400e" : "var(--color-border)"}`
             },
-            item.id
-          );
-        }) })
+            children: isBlank ? "Restore" : "Black"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            onClick: onClear,
+            className: "rounded px-3 py-1.5 text-xs font-medium transition-colors",
+            style: {
+              backgroundColor: "var(--color-bg-overlay)",
+              color: "var(--color-text-muted)",
+              border: "1px solid var(--color-border)"
+            },
+            children: "Clear"
+          }
+        )
       ]
     }
   );
@@ -112,10 +169,9 @@ function PreviewPanel({ selectedSlide, liveSlide }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
-      className: "flex w-72 flex-shrink-0 flex-col border-l",
+      className: "flex h-full flex-col",
       style: {
-        backgroundColor: "var(--color-bg-elevated)",
-        borderColor: "var(--color-border)"
+        backgroundColor: "var(--color-bg-elevated)"
       },
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -179,120 +235,17 @@ function PreviewPanel({ selectedSlide, liveSlide }) {
     }
   );
 }
-function BottomBar({ outputState, hasSelection: hasSelection2, onGoLive, onBlank, onClear }) {
-  const isBlank = outputState === "blank";
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "div",
-    {
-      className: "flex h-14 items-center gap-3 border-t px-4",
-      style: {
-        backgroundColor: "var(--color-bg-elevated)",
-        borderColor: "var(--color-border)"
-      },
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "button",
-          {
-            onClick: onGoLive,
-            disabled: !hasSelection2,
-            className: "flex items-center gap-2 rounded px-4 py-2 text-sm font-semibold transition-opacity disabled:opacity-40",
-            style: {
-              backgroundColor: "var(--color-accent)",
-              color: "#fff"
-            },
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "span",
-                {
-                  className: "inline-block h-2 w-2 rounded-full",
-                  style: { backgroundColor: "var(--color-live)" }
-                }
-              ),
-              "Go Live"
-            ]
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: onBlank,
-            className: "rounded px-4 py-2 text-sm font-medium transition-colors",
-            style: {
-              backgroundColor: isBlank ? "#92400e" : "var(--color-bg-overlay)",
-              color: isBlank ? "#fcd34d" : "var(--color-text-muted)",
-              border: `1px solid ${isBlank ? "#92400e" : "var(--color-border)"}`
-            },
-            children: isBlank ? "Restore" : "Blank Screen"
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: onClear,
-            className: "rounded px-4 py-2 text-sm font-medium transition-colors",
-            style: {
-              backgroundColor: "var(--color-bg-overlay)",
-              color: "var(--color-text-muted)",
-              border: "1px solid var(--color-border)"
-            },
-            children: "Clear Output"
-          }
-        )
-      ]
-    }
-  );
-}
-function StatusBar({ outputState, liveSlide, warning }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "div",
-    {
-      className: "flex h-6 items-center gap-2 border-t px-4",
-      style: {
-        backgroundColor: "var(--color-bg-base)",
-        borderColor: "var(--color-border)"
-      },
-      children: warning ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "inline-block h-1.5 w-1.5 rounded-full", style: { backgroundColor: "#ef4444" } }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-mono text-xs", style: { color: "#ef4444" }, children: warning })
-      ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-        outputState === "live" && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "span",
-            {
-              className: "inline-block h-1.5 w-1.5 rounded-full animate-pulse",
-              style: { backgroundColor: "var(--color-live)" }
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-mono text-xs", style: { color: "var(--color-live)" }, children: [
-            "LIVE — ",
-            liveSlide?.title
-          ] })
-        ] }),
-        outputState === "blank" && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "span",
-            {
-              className: "inline-block h-1.5 w-1.5 rounded-full animate-pulse",
-              style: { backgroundColor: "#f59e0b" }
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-mono text-xs", style: { color: "#f59e0b" }, children: "BLANK" })
-        ] }),
-        outputState === "idle" && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-mono text-xs", style: { color: "var(--color-text-muted)" }, children: "Output idle" })
-      ] })
-    }
-  );
-}
-function SongList({ selectedId, onSelect, onCreated, refreshKey }) {
+function SongList({ onCreated, refreshKey }) {
   const [songs, setSongs] = reactExports.useState([]);
   const [search, setSearch] = reactExports.useState("");
   const [tagFilter, setTagFilter] = reactExports.useState("");
+  const [contextMenu, setContextMenu] = reactExports.useState(null);
+  const menuRef = reactExports.useRef(null);
   const load = reactExports.useCallback(async () => {
-    const query = {
+    const result = await window.presenterSongs.list({
       search: search.trim() || void 0,
       tags: tagFilter ? [tagFilter] : void 0
-    };
-    const result = await window.presenterSongs.list(query);
+    });
     setSongs(result);
   }, [search, tagFilter]);
   reactExports.useEffect(() => {
@@ -302,21 +255,56 @@ function SongList({ selectedId, onSelect, onCreated, refreshKey }) {
     const t = setTimeout(load, 250);
     return () => clearTimeout(t);
   }, [search, load]);
+  reactExports.useEffect(() => {
+    if (!contextMenu) return;
+    const handler = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setContextMenu(null);
+      }
+    };
+    window.addEventListener("mousedown", handler);
+    return () => window.removeEventListener("mousedown", handler);
+  }, [contextMenu]);
   const [allTags, setAllTags] = reactExports.useState([]);
   reactExports.useEffect(() => {
     const tags = /* @__PURE__ */ new Set();
     songs.forEach((s) => s.tags.forEach((t) => tags.add(t)));
     setAllTags([...tags].sort());
   }, [songs]);
+  reactExports.useEffect(() => {
+    const onFocus = () => {
+      load();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, [load]);
   const handleCreate = async () => {
-    const song = await window.presenterSongs.create({ title: "Untitled Song" });
-    setSongs((prev) => [song, ...prev]);
-    onCreated(song);
+    await window.presenterControl.openSongEditor("new");
+  };
+  const handleContextMenu = (e, song) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, song });
+  };
+  const handleEdit = async () => {
+    if (!contextMenu) return;
+    setContextMenu(null);
+    await window.presenterControl.openSongEditor(contextMenu.song.id);
+  };
+  const handleDeleteConfirm = () => {
+    if (!contextMenu) return;
+    setContextMenu({ ...contextMenu, confirming: true });
+  };
+  const handleDelete2 = async () => {
+    if (!contextMenu) return;
+    const song = contextMenu.song;
+    setContextMenu(null);
+    await window.presenterSongs.delete(song.id);
+    setSongs((prev) => prev.filter((s) => s.id !== song.id));
   };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
-      className: "flex w-72 flex-shrink-0 flex-col border-r",
+      className: "flex h-full flex-col overflow-hidden",
       style: { borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-elevated)" },
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "border-b p-3", style: { borderColor: "var(--color-border)" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -356,41 +344,30 @@ function SongList({ selectedId, onSelect, onCreated, refreshKey }) {
             ))
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto py-1", children: songs.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "px-4 py-6 text-center text-sm", style: { color: "var(--color-text-muted)" }, children: search || tagFilter ? "No songs match." : "No songs yet." }) : songs.map((song) => {
-          const isSelected = song.id === selectedId;
-          return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "button",
-            {
-              onClick: () => onSelect(song),
-              className: "w-full px-4 py-3 text-left transition-colors",
-              style: {
-                backgroundColor: isSelected ? "var(--color-bg-overlay)" : "transparent",
-                borderLeft: isSelected ? "2px solid var(--color-accent)" : "2px solid transparent"
-              },
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "p",
-                  {
-                    className: "truncate text-sm font-medium",
-                    style: { color: isSelected ? "var(--color-text-primary)" : "var(--color-text-muted)" },
-                    children: song.title
-                  }
-                ),
-                song.artist && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-0.5 truncate text-xs", style: { color: "var(--color-text-muted)" }, children: song.artist }),
-                song.tags.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-1 flex flex-wrap gap-1", children: song.tags.map((tag) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "span",
-                  {
-                    className: "rounded-full px-1.5 py-0.5 text-xs",
-                    style: { backgroundColor: "var(--color-bg-base)", color: "var(--color-accent)" },
-                    children: tag
-                  },
-                  tag
-                )) })
-              ]
-            },
-            song.id
-          );
-        }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto py-1", children: songs.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "px-4 py-6 text-center text-sm", style: { color: "var(--color-text-muted)" }, children: search || tagFilter ? "No songs match." : "No songs yet." }) : songs.map((song) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            onContextMenu: (e) => handleContextMenu(e, song),
+            className: "w-full cursor-default px-4 py-3 text-left transition-colors select-none",
+            style: { backgroundColor: "transparent" },
+            onMouseEnter: (e) => e.currentTarget.style.backgroundColor = "var(--color-bg-overlay)",
+            onMouseLeave: (e) => e.currentTarget.style.backgroundColor = "transparent",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "truncate text-sm font-medium", style: { color: "var(--color-text-primary)" }, children: song.title }),
+              song.artist && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-0.5 truncate text-xs", style: { color: "var(--color-text-muted)" }, children: song.artist }),
+              song.tags.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-1 flex flex-wrap gap-1", children: song.tags.map((tag) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "span",
+                {
+                  className: "rounded-full px-1.5 py-0.5 text-xs",
+                  style: { backgroundColor: "var(--color-bg-base)", color: "var(--color-accent)" },
+                  children: tag
+                },
+                tag
+              )) })
+            ]
+          },
+          song.id
+        )) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "border-t p-3", style: { borderColor: "var(--color-border)" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
           "button",
           {
@@ -399,10 +376,205 @@ function SongList({ selectedId, onSelect, onCreated, refreshKey }) {
             style: { backgroundColor: "var(--color-accent)", color: "#fff" },
             children: "+ New Song"
           }
-        ) })
+        ) }),
+        contextMenu && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            ref: menuRef,
+            className: "fixed z-50 overflow-hidden rounded border py-1 shadow-lg",
+            style: {
+              top: contextMenu.y,
+              left: contextMenu.x,
+              backgroundColor: "var(--color-bg-overlay)",
+              borderColor: "var(--color-border)",
+              minWidth: "140px"
+            },
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "div",
+                {
+                  className: "px-3 py-1.5 text-xs font-semibold truncate",
+                  style: { color: "var(--color-text-muted)" },
+                  children: contextMenu.song.title
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "my-1 border-t", style: { borderColor: "var(--color-border)" } }),
+              contextMenu.confirming ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "px-3 py-1.5 text-xs", style: { color: "var(--color-text-muted)" }, children: "Delete this song?" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-1 px-2 pb-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      onClick: () => setContextMenu({ ...contextMenu, confirming: false }),
+                      className: "flex-1 rounded py-1 text-xs transition-colors",
+                      style: { border: "1px solid var(--color-border)", color: "var(--color-text-muted)" },
+                      children: "Cancel"
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "button",
+                    {
+                      onClick: handleDelete2,
+                      className: "flex-1 rounded py-1 text-xs font-medium transition-colors",
+                      style: { backgroundColor: "#dc2626", color: "#fff" },
+                      children: "Delete"
+                    }
+                  )
+                ] })
+              ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    onClick: handleEdit,
+                    className: "flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors text-left",
+                    style: { color: "var(--color-text-primary)" },
+                    onMouseEnter: (e) => e.currentTarget.style.backgroundColor = "var(--color-bg-elevated)",
+                    onMouseLeave: (e) => e.currentTarget.style.backgroundColor = "transparent",
+                    children: "Edit"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    onClick: handleDeleteConfirm,
+                    className: "flex w-full items-center gap-2 px-3 py-2 text-sm transition-colors text-left",
+                    style: { color: "#f87171" },
+                    onMouseEnter: (e) => e.currentTarget.style.backgroundColor = "var(--color-bg-elevated)",
+                    onMouseLeave: (e) => e.currentTarget.style.backgroundColor = "transparent",
+                    children: "Delete"
+                  }
+                )
+              ] })
+            ]
+          }
+        )
       ]
     }
   );
+}
+function LibraryView() {
+  const [refreshKey, setRefreshKey] = reactExports.useState(0);
+  const handleCreated = (_song) => {
+    setRefreshKey((k) => k + 1);
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex h-full overflow-hidden", style: { backgroundColor: "var(--color-bg-base)" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(SongList, { onCreated: handleCreated, refreshKey }) });
+}
+function ResizeHandle({ onDrag, direction = "horizontal" }) {
+  const dragging = reactExports.useRef(false);
+  const lastPos = reactExports.useRef(0);
+  const onMouseDown = reactExports.useCallback(
+    (e) => {
+      e.preventDefault();
+      dragging.current = true;
+      lastPos.current = direction === "horizontal" ? e.clientX : e.clientY;
+      const onMouseMove = (ev) => {
+        if (!dragging.current) return;
+        const pos = direction === "horizontal" ? ev.clientX : ev.clientY;
+        onDrag(pos - lastPos.current);
+        lastPos.current = pos;
+      };
+      const onMouseUp = () => {
+        dragging.current = false;
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+      };
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    },
+    [onDrag, direction]
+  );
+  const isH = direction === "horizontal";
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      onMouseDown,
+      className: "group relative flex-shrink-0 select-none",
+      style: {
+        width: isH ? 5 : "100%",
+        height: isH ? "100%" : 5,
+        cursor: isH ? "col-resize" : "row-resize",
+        backgroundColor: "var(--color-border)"
+      },
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "absolute",
+            style: {
+              inset: isH ? "0 -3px" : "-3px 0",
+              zIndex: 10
+            }
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100",
+            style: { backgroundColor: "var(--color-accent)" }
+          }
+        )
+      ]
+    }
+  );
+}
+const MAX_LINES = 4;
+function isHtml(content) {
+  return content.trimStart().startsWith("<");
+}
+function splitHtmlContent(html, maxLines) {
+  const parser = new DOMParser();
+  const doc2 = parser.parseFromString(`<div>${html}</div>`, "text/html");
+  const paras = Array.from(doc2.querySelectorAll("div > p"));
+  const stanzas = [];
+  let current = [];
+  for (const p of paras) {
+    if (!p.textContent?.trim()) {
+      if (current.length) {
+        stanzas.push(current);
+        current = [];
+      }
+    } else {
+      current.push(p);
+    }
+  }
+  if (current.length) stanzas.push(current);
+  const slides = [];
+  for (const stanza of stanzas) {
+    for (let i = 0; i < stanza.length; i += maxLines) {
+      slides.push(
+        stanza.slice(i, i + maxLines).map((p) => p.outerHTML).join("")
+      );
+    }
+  }
+  return slides;
+}
+function splitPlainContent(content, maxLines) {
+  const stanzas = content.split(/\n[ \t]*\n/).map((s) => s.trim()).filter(Boolean);
+  const slides = [];
+  for (const stanza of stanzas) {
+    const lines = stanza.split("\n").map((l) => l.trimEnd()).filter((l) => l.length > 0);
+    if (lines.length <= maxLines) {
+      slides.push(lines.join("\n"));
+    } else {
+      for (let i = 0; i < lines.length; i += maxLines) {
+        slides.push(lines.slice(i, i + maxLines).join("\n"));
+      }
+    }
+  }
+  return slides;
+}
+function splitSectionToSlides(section, maxLines = MAX_LINES) {
+  const content = section.content?.trim();
+  if (!content) return [];
+  const bodies = isHtml(content) ? splitHtmlContent(content, maxLines) : splitPlainContent(content, maxLines);
+  return bodies.map((body, i) => ({
+    id: `s${section.id}-${i}`,
+    title: section.label,
+    body
+  }));
+}
+function countSlides(section, maxLines = MAX_LINES) {
+  return splitSectionToSlides(section, maxLines).length;
 }
 var shim$2 = { exports: {} };
 var useSyncExternalStoreShim_production = {};
@@ -24173,217 +24345,6 @@ const SECTION_TYPE_LABELS = {
   outro: "Outro",
   interlude: "Interlude"
 };
-const MAX_LINES = 4;
-function isHtml(content) {
-  return content.trimStart().startsWith("<");
-}
-function splitHtmlContent(html, maxLines) {
-  const parser = new DOMParser();
-  const doc2 = parser.parseFromString(`<div>${html}</div>`, "text/html");
-  const paras = Array.from(doc2.querySelectorAll("div > p"));
-  const stanzas = [];
-  let current = [];
-  for (const p of paras) {
-    if (!p.textContent?.trim()) {
-      if (current.length) {
-        stanzas.push(current);
-        current = [];
-      }
-    } else {
-      current.push(p);
-    }
-  }
-  if (current.length) stanzas.push(current);
-  const slides = [];
-  for (const stanza of stanzas) {
-    for (let i = 0; i < stanza.length; i += maxLines) {
-      slides.push(
-        stanza.slice(i, i + maxLines).map((p) => p.outerHTML).join("")
-      );
-    }
-  }
-  return slides;
-}
-function splitPlainContent(content, maxLines) {
-  const stanzas = content.split(/\n[ \t]*\n/).map((s) => s.trim()).filter(Boolean);
-  const slides = [];
-  for (const stanza of stanzas) {
-    const lines = stanza.split("\n").map((l) => l.trimEnd()).filter((l) => l.length > 0);
-    if (lines.length <= maxLines) {
-      slides.push(lines.join("\n"));
-    } else {
-      for (let i = 0; i < lines.length; i += maxLines) {
-        slides.push(lines.slice(i, i + maxLines).join("\n"));
-      }
-    }
-  }
-  return slides;
-}
-function splitSectionToSlides(section, maxLines = MAX_LINES) {
-  const content = section.content?.trim();
-  if (!content) return [];
-  const bodies = isHtml(content) ? splitHtmlContent(content, maxLines) : splitPlainContent(content, maxLines);
-  return bodies.map((body, i) => ({
-    id: `s${section.id}-${i}`,
-    title: section.label,
-    body
-  }));
-}
-function countSlides(section, maxLines = MAX_LINES) {
-  return splitSectionToSlides(section, maxLines).length;
-}
-const FALLBACK_FONTS = [
-  "Arial",
-  "Courier New",
-  "Georgia",
-  "Tahoma",
-  "Times New Roman",
-  "Trebuchet MS",
-  "Verdana"
-];
-const SIZES = ["16", "20", "24", "28", "32", "36", "40", "46", "52", "60", "72"];
-let systemFontsCache = null;
-async function loadSystemFonts() {
-  if (systemFontsCache) return systemFontsCache;
-  try {
-    const fonts = await window.queryLocalFonts?.();
-    if (!fonts) throw new Error("unavailable");
-    const families = [...new Set(fonts.map((f) => f.family))].sort();
-    systemFontsCache = families;
-    return families;
-  } catch {
-    systemFontsCache = FALLBACK_FONTS;
-    return FALLBACK_FONTS;
-  }
-}
-function ToolbarButton({
-  active,
-  onClick,
-  title,
-  children
-}) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
-    "button",
-    {
-      type: "button",
-      onMouseDown: (e) => {
-        e.preventDefault();
-        onClick();
-      },
-      title,
-      className: "rounded px-2 py-1 text-sm font-medium transition-colors",
-      style: {
-        backgroundColor: active ? "var(--color-accent)" : "transparent",
-        color: active ? "#fff" : "var(--color-text-muted)",
-        border: "1px solid " + (active ? "var(--color-accent)" : "transparent")
-      },
-      children
-    }
-  );
-}
-function RichToolbar({ editor }) {
-  const [fonts, setFonts] = reactExports.useState(systemFontsCache ?? FALLBACK_FONTS);
-  reactExports.useEffect(() => {
-    if (systemFontsCache) return;
-    loadSystemFonts().then(setFonts);
-  }, []);
-  if (!editor) return null;
-  const currentFont = editor.getAttributes("textStyle").fontFamily ?? fonts[0] ?? "Arial";
-  const currentSize = editor.getAttributes("textStyle").fontSize?.replace("px", "") ?? "32";
-  const setFont = (font) => {
-    editor.chain().focus().setFontFamily(font).run();
-  };
-  const setSize = (size) => {
-    editor.chain().focus().setFontSize(`${size}px`).run();
-  };
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-    "div",
-    {
-      className: "flex flex-wrap items-center gap-1 rounded-t border border-b-0 px-2 py-1.5",
-      style: { borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-base)" },
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "select",
-          {
-            value: currentFont,
-            onChange: (e) => setFont(e.target.value),
-            className: "rounded border px-1.5 py-0.5 text-xs outline-none",
-            style: {
-              borderColor: "var(--color-border)",
-              backgroundColor: "var(--color-bg-overlay)",
-              color: "var(--color-text-primary)",
-              fontFamily: currentFont,
-              maxWidth: "10rem"
-            },
-            children: fonts.map((f) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: f, children: f }, f))
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "select",
-          {
-            value: currentSize,
-            onChange: (e) => setSize(e.target.value),
-            className: "rounded border px-1.5 py-0.5 text-xs outline-none",
-            style: {
-              borderColor: "var(--color-border)",
-              backgroundColor: "var(--color-bg-overlay)",
-              color: "var(--color-text-primary)",
-              width: "4rem"
-            },
-            children: SIZES.map((s) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: s, children: s }, s))
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mx-1 h-5 w-px", style: { backgroundColor: "var(--color-border)" } }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          ToolbarButton,
-          {
-            active: editor.isActive("bold"),
-            onClick: () => editor.chain().focus().toggleBold().run(),
-            title: "Bold",
-            children: /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "B" })
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          ToolbarButton,
-          {
-            active: editor.isActive("italic"),
-            onClick: () => editor.chain().focus().toggleItalic().run(),
-            title: "Italic",
-            children: /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "I" })
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mx-1 h-5 w-px", style: { backgroundColor: "var(--color-border)" } }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          ToolbarButton,
-          {
-            active: editor.isActive({ textAlign: "left" }),
-            onClick: () => editor.chain().focus().setTextAlign("left").run(),
-            title: "Align left",
-            children: "≡"
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          ToolbarButton,
-          {
-            active: editor.isActive({ textAlign: "center" }),
-            onClick: () => editor.chain().focus().setTextAlign("center").run(),
-            title: "Align center",
-            children: "☰"
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          ToolbarButton,
-          {
-            active: editor.isActive({ textAlign: "right" }),
-            onClick: () => editor.chain().focus().setTextAlign("right").run(),
-            title: "Align right",
-            children: "≡"
-          }
-        )
-      ]
-    }
-  );
-}
 const SECTION_TYPES = Object.keys(SECTION_TYPE_LABELS);
 const TYPE_COLORS = {
   verse: "#5b5fc7",
@@ -24402,7 +24363,8 @@ function SectionCard({
   onChange,
   onDelete,
   onMoveUp,
-  onMoveDown
+  onMoveDown,
+  onFocusEditor
 }) {
   const slideCount = countSlides(section);
   const latestRef = reactExports.useRef({ section, onChange });
@@ -24419,6 +24381,9 @@ function SectionCard({
     onUpdate: ({ editor: e }) => {
       const { section: s, onChange: cb } = latestRef.current;
       cb({ ...s, content: e.getHTML() });
+    },
+    onFocus: ({ editor: e }) => {
+      onFocusEditor(e);
     }
   });
   reactExports.useEffect(() => {
@@ -24445,7 +24410,7 @@ function SectionCard({
                 {
                   value: section.type,
                   onChange: (e) => handleField("type", e.target.value),
-                  className: "bg-transparent text-xs font-semibold outline-none cursor-pointer",
+                  className: "cursor-pointer bg-transparent text-xs font-semibold outline-none",
                   style: { color: TYPE_COLORS[section.type] },
                   onClick: (e) => e.stopPropagation(),
                   children: SECTION_TYPES.map((t) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: t, style: { color: "var(--color-text-primary)", backgroundColor: "var(--color-bg-overlay)" }, children: SECTION_TYPE_LABELS[t] }, t))
@@ -24511,92 +24476,197 @@ function SectionCard({
             )
           ] })
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-3 pb-3", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(RichToolbar, { editor }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(EditorContent, { editor, className: "tiptap-editor" })
-        ] })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-3 pb-3", children: /* @__PURE__ */ jsxRuntimeExports.jsx(EditorContent, { editor, className: "tiptap-editor" }) })
       ]
     }
   );
 }
-function SlideListItem({ index, slide, isSelected, onClick }) {
-  const previewLines = slide.body.split("\n").slice(0, 2).join("\n");
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+const FALLBACK_FONTS = [
+  "Arial",
+  "Courier New",
+  "Georgia",
+  "Tahoma",
+  "Times New Roman",
+  "Trebuchet MS",
+  "Verdana"
+];
+const SIZES = ["16", "20", "24", "28", "32", "36", "40", "46", "52", "60", "72"];
+let systemFontsCache = null;
+async function loadSystemFonts() {
+  if (systemFontsCache) return systemFontsCache;
+  try {
+    const fonts = await window.queryLocalFonts?.();
+    if (!fonts) throw new Error("unavailable");
+    const families = [...new Set(fonts.map((f) => f.family))].sort();
+    systemFontsCache = families;
+    return families;
+  } catch {
+    systemFontsCache = FALLBACK_FONTS;
+    return FALLBACK_FONTS;
+  }
+}
+function ToolbarButton({
+  active,
+  onClick,
+  title,
+  children
+}) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
     "button",
     {
-      onClick,
-      className: "w-full text-left px-3 py-2.5 border-b transition-colors",
-      style: {
-        borderColor: "var(--color-border)",
-        backgroundColor: isSelected ? "var(--color-bg-overlay)" : "transparent",
-        borderLeft: isSelected ? "3px solid var(--color-accent)" : "3px solid transparent"
+      type: "button",
+      onMouseDown: (e) => {
+        e.preventDefault();
+        onClick();
       },
-      children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "span",
-            {
-              className: "text-xs font-mono rounded px-1.5 py-0.5 shrink-0",
-              style: { backgroundColor: "var(--color-bg-base)", color: "var(--color-text-muted)" },
-              children: index + 1
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-semibold truncate", style: { color: "var(--color-accent)" }, children: slide.title })
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "p",
-          {
-            className: "text-xs leading-relaxed line-clamp-2 whitespace-pre-line",
-            style: { color: "var(--color-text-muted)" },
-            children: previewLines
-          }
-        )
-      ]
+      title,
+      className: "rounded px-2 py-1 text-sm font-medium transition-colors",
+      style: {
+        backgroundColor: active ? "var(--color-accent)" : "transparent",
+        color: active ? "#fff" : "var(--color-text-muted)",
+        border: "1px solid " + (active ? "var(--color-accent)" : "transparent")
+      },
+      children
     }
   );
 }
-function SlidesTab({ sections }) {
-  const [selectedIndex, setSelectedIndex] = reactExports.useState(0);
-  const allSlides = sections.flatMap((s) => splitSectionToSlides(s));
-  const selected = allSlides[selectedIndex] ?? null;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-1 overflow-hidden", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "div",
-      {
-        className: "w-72 shrink-0 overflow-y-auto border-r",
-        style: { borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-elevated)" },
-        children: allSlides.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex h-full items-center justify-center p-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-center text-sm", style: { color: "var(--color-text-muted)" }, children: [
-          "No slides yet.",
-          /* @__PURE__ */ jsxRuntimeExports.jsx("br", {}),
-          "Add sections in the Words tab."
-        ] }) }) : allSlides.map((slide, i) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-          SlideListItem,
+function RichToolbar({ editor }) {
+  const [fonts, setFonts] = reactExports.useState(systemFontsCache ?? FALLBACK_FONTS);
+  reactExports.useEffect(() => {
+    if (systemFontsCache) return;
+    loadSystemFonts().then(setFonts);
+  }, []);
+  const disabled = !editor;
+  const currentFont = editor?.getAttributes("textStyle").fontFamily ?? fonts[0] ?? "Arial";
+  const currentSize = editor?.getAttributes("textStyle").fontSize?.replace("px", "") ?? "32";
+  const setFont = (font) => {
+    editor?.chain().focus().setFontFamily(font).run();
+  };
+  const setSize = (size) => {
+    editor?.chain().focus().setFontSize(`${size}px`).run();
+  };
+  const divider = /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mx-1 h-5 w-px shrink-0", style: { backgroundColor: "var(--color-border)" } });
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      className: "flex w-full flex-wrap items-center gap-1 px-3 py-1.5",
+      style: {
+        backgroundColor: "var(--color-bg-elevated)",
+        opacity: disabled ? 0.45 : 1,
+        pointerEvents: disabled ? "none" : "auto"
+      },
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "select",
           {
-            index: i,
-            slide,
-            isSelected: i === selectedIndex,
-            onClick: () => setSelectedIndex(i)
-          },
-          slide.id
-        ))
-      }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-1 items-center justify-center bg-black", children: selected ? selected.body.trimStart().startsWith("<") ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "div",
-      {
-        className: "text-center leading-relaxed px-12 slide-body",
-        style: { color: "#ffffff", fontSize: "2rem" },
-        dangerouslySetInnerHTML: { __html: selected.body }
-      }
-    ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "p",
-      {
-        className: "text-center leading-relaxed whitespace-pre-line px-12",
-        style: { color: "#ffffff", fontSize: "2rem" },
-        children: selected.body
-      }
-    ) : /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm", style: { color: "#4b5563" }, children: "No slides" }) })
-  ] });
+            value: currentFont,
+            onChange: (e) => setFont(e.target.value),
+            className: "rounded border px-1.5 py-0.5 text-xs outline-none",
+            style: {
+              borderColor: "var(--color-border)",
+              backgroundColor: "var(--color-bg-overlay)",
+              color: "var(--color-text-primary)",
+              maxWidth: "11rem"
+            },
+            children: fonts.map((f) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: f, children: f }, f))
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "select",
+          {
+            value: currentSize,
+            onChange: (e) => setSize(e.target.value),
+            className: "rounded border px-1.5 py-0.5 text-xs outline-none",
+            style: {
+              borderColor: "var(--color-border)",
+              backgroundColor: "var(--color-bg-overlay)",
+              color: "var(--color-text-primary)",
+              width: "4rem"
+            },
+            children: SIZES.map((s) => /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: s, children: s }, s))
+          }
+        ),
+        divider,
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          ToolbarButton,
+          {
+            active: !!editor?.isActive("bold"),
+            onClick: () => editor?.chain().focus().toggleBold().run(),
+            title: "Bold",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "B" })
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          ToolbarButton,
+          {
+            active: !!editor?.isActive("italic"),
+            onClick: () => editor?.chain().focus().toggleItalic().run(),
+            title: "Italic",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx("em", { children: "I" })
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          ToolbarButton,
+          {
+            active: false,
+            onClick: () => {
+            },
+            title: "Underline (coming soon)",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { textDecoration: "underline" }, children: "U" })
+          }
+        ),
+        divider,
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          ToolbarButton,
+          {
+            active: !!editor?.isActive({ textAlign: "left" }),
+            onClick: () => editor?.chain().focus().setTextAlign("left").run(),
+            title: "Align left",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { width: "14", height: "14", viewBox: "0 0 14 14", fill: "currentColor", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "0", y: "1", width: "14", height: "2", rx: "1" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "0", y: "5", width: "9", height: "2", rx: "1" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "0", y: "9", width: "14", height: "2", rx: "1" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "0", y: "13", width: "7", height: "2", rx: "1", transform: "translate(0 -2)" })
+            ] })
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          ToolbarButton,
+          {
+            active: !!editor?.isActive({ textAlign: "center" }),
+            onClick: () => editor?.chain().focus().setTextAlign("center").run(),
+            title: "Align center",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { width: "14", height: "14", viewBox: "0 0 14 14", fill: "currentColor", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "0", y: "1", width: "14", height: "2", rx: "1" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "2.5", y: "5", width: "9", height: "2", rx: "1" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "0", y: "9", width: "14", height: "2", rx: "1" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "3.5", y: "11", width: "7", height: "2", rx: "1" })
+            ] })
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          ToolbarButton,
+          {
+            active: !!editor?.isActive({ textAlign: "right" }),
+            onClick: () => editor?.chain().focus().setTextAlign("right").run(),
+            title: "Align right",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsxs("svg", { width: "14", height: "14", viewBox: "0 0 14 14", fill: "currentColor", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "0", y: "1", width: "14", height: "2", rx: "1" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "5", y: "5", width: "9", height: "2", rx: "1" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "0", y: "9", width: "14", height: "2", rx: "1" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("rect", { x: "7", y: "11", width: "7", height: "2", rx: "1" })
+            ] })
+          }
+        ),
+        divider,
+        /* @__PURE__ */ jsxRuntimeExports.jsx(ToolbarButton, { active: false, onClick: () => {
+        }, title: "Text color (coming soon)", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex flex-col items-center leading-none", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-bold", children: "A" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mt-0.5 h-1 w-4 rounded-sm", style: { backgroundColor: "var(--color-accent)" } })
+        ] }) })
+      ]
+    }
+  );
 }
 const SECTION_TYPE_DEFAULTS = [
   { type: "verse", label: "Verse 1" },
@@ -24616,7 +24686,18 @@ function SongEditor({ songId, onDeleted }) {
   const [addingSection, setAddingSection] = reactExports.useState(false);
   const [activeTab, setActiveTab] = reactExports.useState("words");
   const [showDeleteConfirm, setShowDeleteConfirm] = reactExports.useState(false);
+  const [focusedEditor, setFocusedEditor] = reactExports.useState(null);
+  const [selectedSlideIndex, setSelectedSlideIndex] = reactExports.useState(0);
+  const [titleError, setTitleError] = reactExports.useState(false);
+  const EMPTY_SONG = { id: 0, title: "", artist: null, tags: [], sections: [], createdAt: "", updatedAt: "" };
   const load = reactExports.useCallback(async () => {
+    if (songId === null) {
+      setSaved(EMPTY_SONG);
+      setDraft(EMPTY_SONG);
+      setTagInput("");
+      setShowDeleteConfirm(false);
+      return;
+    }
     const s = await window.presenterSongs.get(songId);
     setSaved(s);
     setDraft(s);
@@ -24626,32 +24707,49 @@ function SongEditor({ songId, onDeleted }) {
   reactExports.useEffect(() => {
     load();
   }, [load]);
-  const isDirty = reactExports.useRef(false);
+  const allSlides = draft ? draft.sections.flatMap((s) => splitSectionToSlides(s)) : [];
+  const previewSlide = allSlides[selectedSlideIndex] ?? allSlides[0] ?? null;
   reactExports.useEffect(() => {
-    if (!saved || !draft) {
-      isDirty.current = false;
-      return;
-    }
-    isDirty.current = JSON.stringify(draft) !== JSON.stringify(saved);
-  });
+    setSelectedSlideIndex((i) => Math.min(i, Math.max(0, allSlides.length - 1)));
+  }, [allSlides.length]);
   if (!draft || !saved) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex h-full items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: { color: "var(--color-text-muted)" }, children: "Loading…" }) });
   }
-  const dirty = saved && draft && JSON.stringify(draft) !== JSON.stringify(saved);
+  const isNew = songId === null;
+  const dirty = isNew ? draft.title.trim() !== "" || draft.sections.length > 0 : JSON.stringify(draft) !== JSON.stringify(saved);
+  const closeWindow = () => {
+    window.presenterControl.closeEditor();
+  };
   const handleSave = async () => {
-    if (!draft) return;
+    if (!draft.title.trim()) {
+      setTitleError(true);
+      return false;
+    }
+    setTitleError(false);
     setSaving(true);
     try {
-      const updatedSong = await window.presenterSongs.update(draft.id, {
-        title: draft.title || "Untitled",
-        artist: draft.artist ?? void 0,
-        tags: draft.tags
-      });
+      let baseSong;
+      if (isNew) {
+        const created = await window.presenterSongs.create({ title: draft.title.trim() });
+        const updated = await window.presenterSongs.update(created.id, {
+          title: created.title,
+          artist: draft.artist ?? void 0,
+          tags: draft.tags
+        });
+        baseSong = { ...updated ?? created, sections: [] };
+      } else {
+        const updated = await window.presenterSongs.update(draft.id, {
+          title: draft.title.trim(),
+          artist: draft.artist ?? void 0,
+          tags: draft.tags
+        });
+        baseSong = { ...updated ?? draft, sections: [] };
+      }
       const savedSections = [];
       for (const section of draft.sections) {
         const s = await window.presenterSongs.upsertSection({
-          id: section.id,
-          songId: draft.id,
+          id: isNew ? void 0 : section.id,
+          songId: baseSong.id,
           type: section.type,
           label: section.label,
           content: section.content,
@@ -24659,19 +24757,23 @@ function SongEditor({ songId, onDeleted }) {
         });
         savedSections.push(s);
       }
-      const newSaved = {
-        ...updatedSong ?? draft,
-        sections: savedSections
-      };
+      const newSaved = { ...baseSong, sections: savedSections };
       setSaved(newSaved);
       setDraft(newSaved);
+      return true;
     } finally {
       setSaving(false);
     }
   };
+  const handleOk = async () => {
+    if (dirty) {
+      const ok = await handleSave();
+      if (!ok) return;
+    }
+    closeWindow();
+  };
   const handleCancel = () => {
-    setDraft(saved);
-    setTagInput("");
+    closeWindow();
   };
   const addTag = () => {
     const tag = tagInput.trim().toLowerCase();
@@ -24688,20 +24790,17 @@ function SongEditor({ songId, onDeleted }) {
   const handleSectionChange = (updated) => {
     setDraft((prev) => {
       if (!prev) return prev;
-      return {
-        ...prev,
-        sections: prev.sections.map((s) => s.id === updated.id ? updated : s)
-      };
+      return { ...prev, sections: prev.sections.map((s) => s.id === updated.id ? updated : s) };
     });
   };
   const handleSectionDelete = async (id) => {
     await window.presenterSongs.deleteSection(id);
-    const removeSectionById = (song) => ({
+    const remove = (song) => ({
       ...song,
       sections: song.sections.filter((s) => s.id !== id).map((s, i) => ({ ...s, sortOrder: i }))
     });
-    setSaved((prev) => prev ? removeSectionById(prev) : prev);
-    setDraft((prev) => prev ? removeSectionById(prev) : prev);
+    setSaved((prev) => prev ? remove(prev) : prev);
+    setDraft((prev) => prev ? remove(prev) : prev);
   };
   const handleMoveSection = (index, direction) => {
     setDraft((prev) => {
@@ -24713,71 +24812,82 @@ function SongEditor({ songId, onDeleted }) {
     });
   };
   const addSection = async (type, label) => {
-    const saved_section = await window.presenterSongs.upsertSection({
-      songId: draft.id,
+    let targetId = draft.id;
+    if (isNew) {
+      const created = await window.presenterSongs.create({
+        title: draft.title.trim() || "Untitled"
+      });
+      targetId = created.id;
+      setSaved((prev) => prev ? { ...prev, id: created.id, title: created.title } : prev);
+      setDraft((prev) => prev ? { ...prev, id: created.id, title: created.title } : prev);
+    }
+    const newSection = await window.presenterSongs.upsertSection({
+      songId: targetId,
       type,
       label,
       content: "",
       sortOrder: draft.sections.length
     });
-    const addSection_ = (song) => ({
+    const add = (song) => ({
       ...song,
-      sections: [...song.sections, saved_section]
+      sections: [...song.sections, newSection]
     });
-    setSaved((prev) => prev ? addSection_(prev) : prev);
-    setDraft((prev) => prev ? addSection_(prev) : prev);
+    setSaved((prev) => prev ? add(prev) : prev);
+    setDraft((prev) => prev ? add(prev) : prev);
     setAddingSection(false);
   };
   const handleDeleteSong = async () => {
     await window.presenterSongs.delete(draft.id);
     onDeleted();
+    window.close();
   };
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-full flex-col overflow-hidden", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-full flex-col overflow-hidden", style: { backgroundColor: "var(--color-bg-base)" }, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
       {
-        className: "shrink-0 border-b p-4",
+        className: "shrink-0 flex items-center gap-3 border-b px-4 py-2",
         style: { borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-elevated)" },
         children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "input",
-            {
-              type: "text",
-              value: draft.title,
-              onChange: (e) => setDraft((prev) => prev ? { ...prev, title: e.target.value } : prev),
-              className: "mb-2 w-full bg-transparent text-xl font-bold outline-none",
-              style: { color: "var(--color-text-primary)" },
-              placeholder: "Song title"
-            }
-          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-1 flex-col", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "input",
+              {
+                type: "text",
+                value: draft.title,
+                onChange: (e) => {
+                  setTitleError(false);
+                  setDraft((prev) => prev ? { ...prev, title: e.target.value } : prev);
+                },
+                className: "bg-transparent text-base font-bold outline-none",
+                style: {
+                  color: "var(--color-text-primary)",
+                  borderBottom: titleError ? "1px solid #dc2626" : "1px solid transparent"
+                },
+                placeholder: "Song title *"
+              }
+            ),
+            titleError && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mt-0.5 text-xs", style: { color: "#dc2626" }, children: "Title is required" })
+          ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             "input",
             {
               type: "text",
               value: draft.artist ?? "",
               onChange: (e) => setDraft((prev) => prev ? { ...prev, artist: e.target.value } : prev),
-              className: "mb-3 w-full bg-transparent text-sm outline-none",
+              className: "w-40 bg-transparent text-sm outline-none",
               style: { color: "var(--color-text-muted)" },
-              placeholder: "Artist / Author"
+              placeholder: "Artist"
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-1.5", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-1", children: [
             draft.tags.map((tag) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
               "span",
               {
-                className: "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs",
+                className: "flex items-center gap-1 rounded-full px-2 py-0.5 text-xs",
                 style: { backgroundColor: "var(--color-bg-overlay)", color: "var(--color-accent)" },
                 children: [
                   tag,
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "button",
-                    {
-                      onClick: () => removeTag(tag),
-                      className: "opacity-60 hover:opacity-100",
-                      style: { color: "var(--color-text-muted)" },
-                      children: "×"
-                    }
-                  )
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("button", { onClick: () => removeTag(tag), className: "opacity-60 hover:opacity-100", style: { color: "var(--color-text-muted)" }, children: "×" })
                 ]
               },
               tag
@@ -24797,11 +24907,19 @@ function SongEditor({ songId, onDeleted }) {
                 onBlur: addTag,
                 placeholder: "+ tag",
                 className: "bg-transparent text-xs outline-none",
-                style: { color: "var(--color-text-muted)", width: "4rem" }
+                style: { color: "var(--color-text-muted)", width: "3.5rem" }
               }
             )
           ] })
         ]
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        className: "shrink-0 border-b",
+        style: { borderColor: "var(--color-border)" },
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(RichToolbar, { editor: focusedEditor })
       }
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -24825,85 +24943,204 @@ function SongEditor({ songId, onDeleted }) {
         ))
       }
     ),
-    activeTab === "slides" ? /* @__PURE__ */ jsxRuntimeExports.jsx(SlidesTab, { sections: draft.sections }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto p-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-3", children: [
-        draft.sections.length === 0 && !addingSection && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm", style: { color: "var(--color-text-muted)" }, children: "No sections yet. Add one below." }),
-        draft.sections.map((section, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-          SectionCard,
-          {
-            section,
-            isFirst: index === 0,
-            isLast: index === draft.sections.length - 1,
-            onChange: handleSectionChange,
-            onDelete: () => handleSectionDelete(section.id),
-            onMoveUp: () => handleMoveSection(index, "up"),
-            onMoveDown: () => handleMoveSection(index, "down")
-          },
-          section.id
-        )),
-        addingSection ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "div",
-          {
-            className: "rounded border p-3",
-            style: { borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-elevated)" },
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mb-2 text-xs font-semibold uppercase tracking-wider", style: { color: "var(--color-text-muted)" }, children: "Choose section type" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap gap-2", children: [
-                SECTION_TYPE_DEFAULTS.map(({ type, label }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    onClick: () => addSection(type, label),
-                    className: "rounded px-3 py-1.5 text-sm transition-colors",
-                    style: {
-                      backgroundColor: "var(--color-bg-overlay)",
-                      color: "var(--color-text-primary)",
-                      border: "1px solid var(--color-border)"
-                    },
-                    children: label
-                  },
-                  type
-                )),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    onClick: () => setAddingSection(false),
-                    className: "rounded px-3 py-1.5 text-sm",
-                    style: { color: "var(--color-text-muted)" },
-                    children: "Cancel"
-                  }
-                )
-              ] })
-            ]
-          }
-        ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: () => setAddingSection(true),
-            className: "rounded border border-dashed py-2 text-sm transition-colors",
-            style: { borderColor: "var(--color-border)", color: "var(--color-text-muted)" },
-            children: "+ Add Section"
-          }
-        )
-      ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex min-h-0 flex-1 overflow-hidden", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "div",
         {
-          className: "shrink-0 border-t px-4 py-3",
-          style: { borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-elevated)" },
-          children: showDeleteConfirm ? (
-            /* Delete confirmation */
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-sm", style: { color: "var(--color-text-primary)" }, children: [
-                "Delete “",
-                draft.title,
-                "”? This cannot be undone."
+          className: "flex w-80 shrink-0 flex-col overflow-hidden border-r",
+          style: { borderColor: "var(--color-border)" },
+          children: activeTab === "slides" ? (
+            /* Slides tab: flat slide list */
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto", children: allSlides.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex h-full items-center justify-center p-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-center text-sm", style: { color: "var(--color-text-muted)" }, children: [
+              "No slides yet.",
+              /* @__PURE__ */ jsxRuntimeExports.jsx("br", {}),
+              "Add sections in Words tab."
+            ] }) }) : allSlides.map((slide, i) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                onClick: () => setSelectedSlideIndex(i),
+                className: "w-full border-b px-3 py-2.5 text-left transition-colors",
+                style: {
+                  borderColor: "var(--color-border)",
+                  backgroundColor: i === selectedSlideIndex ? "var(--color-bg-overlay)" : "transparent",
+                  borderLeft: i === selectedSlideIndex ? "3px solid var(--color-accent)" : "3px solid transparent"
+                },
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mb-1 flex items-center gap-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "span",
+                      {
+                        className: "shrink-0 rounded px-1.5 py-0.5 font-mono text-xs",
+                        style: { backgroundColor: "var(--color-bg-base)", color: "var(--color-text-muted)" },
+                        children: i + 1
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "truncate text-xs font-semibold", style: { color: "var(--color-accent)" }, children: slide.title })
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "p",
+                    {
+                      className: "line-clamp-2 whitespace-pre-line text-xs leading-relaxed",
+                      style: { color: "var(--color-text-muted)" },
+                      children: slide.body.split("\n").slice(0, 2).join("\n")
+                    }
+                  )
+                ]
+              },
+              slide.id
+            )) })
+          ) : (
+            /* Words tab: section cards */
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto p-3", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-3", children: [
+              draft.sections.length === 0 && !addingSection && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm", style: { color: "var(--color-text-muted)" }, children: "No sections yet. Add one below." }),
+              draft.sections.map((section, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                SectionCard,
+                {
+                  section,
+                  isFirst: index === 0,
+                  isLast: index === draft.sections.length - 1,
+                  onChange: handleSectionChange,
+                  onDelete: () => handleSectionDelete(section.id),
+                  onMoveUp: () => handleMoveSection(index, "up"),
+                  onMoveDown: () => handleMoveSection(index, "down"),
+                  onFocusEditor: setFocusedEditor
+                },
+                section.id
+              )),
+              addingSection ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "div",
+                {
+                  className: "rounded border p-3",
+                  style: { borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-elevated)" },
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mb-2 text-xs font-semibold uppercase tracking-wider", style: { color: "var(--color-text-muted)" }, children: "Choose section type" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap gap-2", children: [
+                      SECTION_TYPE_DEFAULTS.map(({ type, label }) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "button",
+                        {
+                          onClick: () => addSection(type, label),
+                          className: "rounded px-3 py-1.5 text-sm transition-colors",
+                          style: { backgroundColor: "var(--color-bg-overlay)", color: "var(--color-text-primary)", border: "1px solid var(--color-border)" },
+                          children: label
+                        },
+                        type
+                      )),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "button",
+                        {
+                          onClick: () => setAddingSection(false),
+                          className: "rounded px-3 py-1.5 text-sm",
+                          style: { color: "var(--color-text-muted)" },
+                          children: "Cancel"
+                        }
+                      )
+                    ] })
+                  ]
+                }
+              ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  onClick: () => setAddingSection(true),
+                  className: "rounded border border-dashed py-2 text-sm transition-colors",
+                  style: { borderColor: "var(--color-border)", color: "var(--color-text-muted)" },
+                  children: "+ Add Section"
+                }
+              )
+            ] }) })
+          )
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-1 flex-col overflow-hidden bg-black", children: previewSlide ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-full flex-col items-center justify-center px-12", children: [
+        previewSlide.body.trimStart().startsWith("<") ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "slide-body text-center leading-relaxed",
+            style: { color: "#ffffff", fontSize: "2rem" },
+            dangerouslySetInnerHTML: { __html: previewSlide.body }
+          }
+        ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "p",
+          {
+            className: "whitespace-pre-line text-center leading-relaxed",
+            style: { color: "#ffffff", fontSize: "2rem" },
+            children: previewSlide.body
+          }
+        ),
+        previewSlide.title && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "p",
+          {
+            className: "absolute bottom-4 right-4 text-xs",
+            style: { color: "rgba(255,255,255,0.3)" },
+            children: previewSlide.title
+          }
+        )
+      ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex h-full items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm", style: { color: "#4b5563" }, children: draft.sections.length === 0 ? "Add sections to see a preview" : "No slides" }) }) })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        className: "shrink-0 border-t px-4 py-3",
+        style: { borderColor: "var(--color-border)", backgroundColor: "var(--color-bg-elevated)" },
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
+          !isNew ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              onClick: () => setShowDeleteConfirm(true),
+              className: "text-xs transition-colors hover:text-red-400",
+              style: { color: "var(--color-text-muted)" },
+              children: "Delete song"
+            }
+          ) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", {}),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+            saving && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs", style: { color: "var(--color-text-muted)" }, children: "Saving…" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                onClick: handleCancel,
+                className: "rounded px-4 py-1.5 text-xs",
+                style: { color: "var(--color-text-muted)", border: "1px solid var(--color-border)" },
+                children: "Cancel"
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                onClick: handleOk,
+                disabled: saving,
+                className: "rounded px-4 py-1.5 text-xs font-medium disabled:opacity-40",
+                style: { backgroundColor: "var(--color-accent)", color: "#fff" },
+                children: "OK"
+              }
+            )
+          ] })
+        ] })
+      }
+    ),
+    showDeleteConfirm && /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        className: "fixed inset-0 z-50 flex items-center justify-center",
+        style: { backgroundColor: "rgba(0,0,0,0.6)" },
+        onClick: () => setShowDeleteConfirm(false),
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            className: "w-80 rounded-lg border p-6 shadow-xl",
+            style: { backgroundColor: "var(--color-bg-elevated)", borderColor: "var(--color-border)" },
+            onClick: (e) => e.stopPropagation(),
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "mb-1 text-sm font-semibold", style: { color: "var(--color-text-primary)" }, children: "Delete song?" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "mb-5 text-xs", style: { color: "var(--color-text-muted)" }, children: [
+                "“",
+                draft.title || "Untitled",
+                "” will be permanently deleted. This cannot be undone."
               ] }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-end gap-2", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx(
                   "button",
                   {
                     onClick: () => setShowDeleteConfirm(false),
-                    className: "rounded px-3 py-1.5 text-xs transition-colors",
+                    className: "rounded px-4 py-1.5 text-xs",
                     style: { color: "var(--color-text-muted)", border: "1px solid var(--color-border)" },
                     children: "Cancel"
                   }
@@ -24912,83 +25149,17 @@ function SongEditor({ songId, onDeleted }) {
                   "button",
                   {
                     onClick: handleDeleteSong,
-                    className: "rounded px-3 py-1.5 text-xs font-medium transition-colors",
-                    style: { backgroundColor: "#dc2626", color: "#fff", border: "1px solid #dc2626" },
+                    className: "rounded px-4 py-1.5 text-xs font-medium",
+                    style: { backgroundColor: "#dc2626", color: "#fff" },
                     children: "Delete"
                   }
                 )
               ] })
-            ] })
-          ) : (
-            /* Normal footer: Save / Cancel / Delete */
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                "button",
-                {
-                  onClick: () => setShowDeleteConfirm(true),
-                  className: "text-xs transition-colors hover:text-red-400",
-                  style: { color: "var(--color-text-muted)" },
-                  children: "Delete song"
-                }
-              ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
-                saving && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs", style: { color: "var(--color-text-muted)" }, children: "Saving…" }),
-                dirty && !saving && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    onClick: handleCancel,
-                    className: "rounded px-3 py-1.5 text-xs transition-colors",
-                    style: { color: "var(--color-text-muted)", border: "1px solid var(--color-border)" },
-                    children: "Cancel"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    onClick: handleSave,
-                    disabled: saving || !dirty,
-                    className: "rounded px-4 py-1.5 text-xs font-medium transition-colors disabled:opacity-40",
-                    style: {
-                      backgroundColor: dirty && !saving ? "var(--color-accent)" : "var(--color-bg-overlay)",
-                      color: dirty && !saving ? "#fff" : "var(--color-text-muted)",
-                      border: "1px solid " + (dirty && !saving ? "var(--color-accent)" : "var(--color-border)")
-                    },
-                    children: "Save"
-                  }
-                )
-              ] })
-            ] })
-          )
-        }
-      )
-    ] })
-  ] });
-}
-function LibraryView() {
-  const [selectedSong, setSelectedSong] = reactExports.useState(null);
-  const [refreshKey, setRefreshKey] = reactExports.useState(0);
-  const handleSelect = (song) => {
-    setSelectedSong(song);
-  };
-  const handleCreated = (song) => {
-    setSelectedSong(song);
-    setRefreshKey((k) => k + 1);
-  };
-  const handleDeleted = () => {
-    setSelectedSong(null);
-    setRefreshKey((k) => k + 1);
-  };
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-1 overflow-hidden", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      SongList,
-      {
-        selectedId: selectedSong?.id ?? null,
-        onSelect: handleSelect,
-        onCreated: handleCreated,
-        refreshKey
+            ]
+          }
+        )
       }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-1 flex-col overflow-hidden", style: { backgroundColor: "var(--color-bg-base)" }, children: selectedSong ? /* @__PURE__ */ jsxRuntimeExports.jsx(SongEditor, { songId: selectedSong.id, onDeleted: handleDeleted }, selectedSong.id) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex h-full flex-col items-center justify-center gap-3", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm", style: { color: "var(--color-text-muted)" }, children: "Select a song to edit, or create a new one." }) }) })
+    )
   ] });
 }
 const DEMO_SLIDES = [
@@ -24999,12 +25170,59 @@ const DEMO_SLIDES = [
   { id: "5", title: "Sermon", body: "The Road Less Traveled — Matthew 7:13-14" },
   { id: "6", title: "Closing", body: "Thank you for joining us. Go in peace." }
 ];
+const editorParam = new URLSearchParams(window.location.search).get("editor");
+const isEditorWindow = editorParam !== null;
+const editorSongId = editorParam && editorParam !== "new" ? parseInt(editorParam, 10) : null;
+function EditorWindow() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      className: "flex h-screen flex-col overflow-hidden",
+      style: { backgroundColor: "var(--color-bg-base)" },
+      children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+        SongEditor,
+        {
+          songId: editorSongId,
+          onDeleted: () => window.close()
+        }
+      )
+    }
+  );
+}
+const SCHEDULE_MIN = 160;
+const SCHEDULE_MAX = 400;
+const RIGHT_MIN = 200;
+const RIGHT_MAX = 500;
+const BOTTOM_MIN = 120;
+const BOTTOM_MAX = 600;
+const RIGHT_SPLIT_MIN = 0.2;
+const RIGHT_SPLIT_MAX = 0.8;
 function App() {
-  const [view, setView] = reactExports.useState("schedule");
+  if (isEditorWindow) return /* @__PURE__ */ jsxRuntimeExports.jsx(EditorWindow, {});
   const [selectedSlide, setSelectedSlide] = reactExports.useState(DEMO_SLIDES[0]);
   const [liveSlide, setLiveSlide] = reactExports.useState(null);
   const [outputState, setOutputState] = reactExports.useState("idle");
   const [warning, setWarning] = reactExports.useState(null);
+  const [scheduleWidth, setScheduleWidth] = reactExports.useState(220);
+  const [rightWidth, setRightWidth] = reactExports.useState(260);
+  const [bottomHeight, setBottomHeight] = reactExports.useState(280);
+  const [rightSplitRatio, setRightSplitRatio] = reactExports.useState(0.55);
+  const upperAreaRef = reactExports.useRef(null);
+  const onScheduleDrag = reactExports.useCallback((delta) => {
+    setScheduleWidth((w) => Math.max(SCHEDULE_MIN, Math.min(SCHEDULE_MAX, w + delta)));
+  }, []);
+  const onRightDrag = reactExports.useCallback((delta) => {
+    setRightWidth((w) => Math.max(RIGHT_MIN, Math.min(RIGHT_MAX, w - delta)));
+  }, []);
+  const onBottomDrag = reactExports.useCallback((delta) => {
+    setBottomHeight((h2) => Math.max(BOTTOM_MIN, Math.min(BOTTOM_MAX, h2 - delta)));
+  }, []);
+  const onRightSplitDrag = reactExports.useCallback((delta) => {
+    const h2 = upperAreaRef.current?.clientHeight ?? 400;
+    setRightSplitRatio(
+      (r) => Math.max(RIGHT_SPLIT_MIN, Math.min(RIGHT_SPLIT_MAX, r + delta / h2))
+    );
+  }, []);
   const showWarning = (msg) => {
     setWarning(msg);
     setTimeout(() => setWarning(null), 4e3);
@@ -25057,35 +25275,117 @@ function App() {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
-      className: "flex h-screen flex-col",
+      className: "flex h-screen select-none flex-col overflow-hidden",
       style: { backgroundColor: "var(--color-bg-base)" },
       children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-1 overflow-hidden", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sidebar, { view, onViewChange: setView }),
-          view === "library" ? /* @__PURE__ */ jsxRuntimeExports.jsx(LibraryView, {}) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              ScheduleArea,
-              {
-                slides: DEMO_SLIDES,
-                selectedSlide,
-                liveSlide,
-                onSelect: setSelectedSlide
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(PreviewPanel, { selectedSlide, liveSlide })
-          ] })
-        ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(
-          BottomBar,
+          Toolbar,
           {
             outputState,
             hasSelection: !!selectedSlide,
+            liveTitle: liveSlide?.title ?? null,
+            warning,
             onGoLive: handleGoLive,
             onBlank: handleBlank,
             onClear: handleClear
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(StatusBar, { outputState, liveSlide, warning })
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { ref: upperAreaRef, className: "flex min-h-0 flex-1 overflow-hidden", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "div",
+            {
+              className: "flex shrink-0 flex-col overflow-hidden",
+              style: { width: scheduleWidth },
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                ScheduleArea,
+                {
+                  slides: DEMO_SLIDES,
+                  selectedSlide,
+                  liveSlide,
+                  onSelect: setSelectedSlide
+                }
+              )
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ResizeHandle, { onDrag: onScheduleDrag, direction: "horizontal" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex min-w-0 flex-1 flex-col overflow-hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+            PreviewPanel,
+            {
+              selectedSlide,
+              liveSlide,
+              width: 0
+            }
+          ) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ResizeHandle, { onDrag: onRightDrag, direction: "horizontal" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "div",
+            {
+              className: "flex shrink-0 flex-col overflow-hidden border-l",
+              style: { width: rightWidth, borderColor: "var(--color-border)" },
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    className: "flex flex-col overflow-hidden",
+                    style: { flex: rightSplitRatio },
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "div",
+                        {
+                          className: "border-b px-3 py-2 text-xs font-semibold uppercase tracking-widest",
+                          style: { borderColor: "var(--color-border)", color: "var(--color-text-muted)" },
+                          children: "Live Select"
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-1 items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs", style: { color: "var(--color-text-muted)" }, children: "Phase 2" }) })
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(ResizeHandle, { onDrag: onRightSplitDrag, direction: "vertical" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "div",
+                  {
+                    className: "flex flex-col overflow-hidden",
+                    style: { flex: 1 - rightSplitRatio },
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "div",
+                        {
+                          className: "border-b px-3 py-2 text-xs font-semibold uppercase tracking-widest",
+                          style: { borderColor: "var(--color-border)", color: "var(--color-text-muted)" },
+                          children: "Live Output"
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-1 items-center justify-center p-3", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "div",
+                        {
+                          className: "w-full overflow-hidden rounded",
+                          style: { aspectRatio: "16 / 9", backgroundColor: "#000" },
+                          children: [
+                            liveSlide && outputState === "live" && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-full flex-col items-center justify-center p-2 text-center", children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs font-bold leading-tight", style: { color: "#fff" }, children: liveSlide.title }),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-0.5 text-xs leading-snug", style: { color: "rgba(255,255,255,0.6)" }, children: liveSlide.body })
+                            ] }),
+                            outputState === "blank" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex h-full items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs", style: { color: "#f59e0b" }, children: "BLANK" }) })
+                          ]
+                        }
+                      ) })
+                    ]
+                  }
+                )
+              ]
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(ResizeHandle, { onDrag: onBottomDrag, direction: "vertical" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "shrink-0 overflow-hidden border-t",
+            style: { height: bottomHeight, borderColor: "var(--color-border)" },
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx(LibraryView, {})
+          }
+        )
       ]
     }
   );

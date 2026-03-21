@@ -13,6 +13,9 @@ const IPC = {
   // Section CRUD
   SECTION_UPSERT: "song:section:upsert",
   SECTION_DELETE: "song:section:delete",
-  SECTION_REORDER: "song:section:reorder"
+  SECTION_REORDER: "song:section:reorder",
+  // Editor window
+  SONG_OPEN_EDITOR: "song:open-editor",
+  EDITOR_CLOSE: "editor:close"
 };
 exports.IPC = IPC;

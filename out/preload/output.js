@@ -1,6 +1,6 @@
 "use strict";
 const electron = require("electron");
-const ipcChannels = require("./chunks/ipc-channels-DiQ1ewji.js");
+const ipcChannels = require("./chunks/ipc-channels-CqWWNnEz.js");
 const presenterOutput = {
   onSlideUpdate: (callback) => {
     const handler = (_event, payload) => callback(payload);

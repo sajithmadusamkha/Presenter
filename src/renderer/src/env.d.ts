@@ -17,6 +17,8 @@ declare global {
       goLive: (payload: SlidePayload) => Promise<{ success: boolean; reason?: string }>
       blank: () => Promise<void>
       clear: () => Promise<void>
+      openSongEditor: (songId: number | 'new') => Promise<void>
+      closeEditor: () => Promise<void>
     }
     presenterSongs: {
       list: (query?: SongListQuery) => Promise<Song[]>

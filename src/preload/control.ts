@@ -11,7 +11,11 @@ contextBridge.exposeInMainWorld('presenterControl', {
   goLive: (payload: SlidePayload): Promise<{ success: boolean; reason?: string }> =>
     ipcRenderer.invoke(IPC.GO_LIVE, payload),
   blank: (): Promise<void> => ipcRenderer.invoke(IPC.BLANK),
-  clear: (): Promise<void> => ipcRenderer.invoke(IPC.CLEAR)
+  clear: (): Promise<void> => ipcRenderer.invoke(IPC.CLEAR),
+  openSongEditor: (songId: number | 'new'): Promise<void> =>
+    ipcRenderer.invoke(IPC.SONG_OPEN_EDITOR, songId),
+  closeEditor: (): Promise<void> =>
+    ipcRenderer.invoke(IPC.EDITOR_CLOSE)
 })
 
 contextBridge.exposeInMainWorld('presenterSongs', {

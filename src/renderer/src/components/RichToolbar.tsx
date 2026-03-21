@@ -65,7 +65,7 @@ function ToolbarButton({
   )
 }
 
-export default function RichToolbar({ editor }: Props): JSX.Element | null {
+export default function RichToolbar({ editor }: Props): JSX.Element {
   const [fonts, setFonts] = useState<string[]>(systemFontsCache ?? FALLBACK_FONTS)
 
   useEffect(() => {
@@ -73,23 +73,30 @@ export default function RichToolbar({ editor }: Props): JSX.Element | null {
     loadSystemFonts().then(setFonts)
   }, [])
 
-  if (!editor) return null
-
-  const currentFont = editor.getAttributes('textStyle').fontFamily ?? fonts[0] ?? 'Arial'
-  const currentSize = editor.getAttributes('textStyle').fontSize?.replace('px', '') ?? '32'
+  const disabled = !editor
+  const currentFont = editor?.getAttributes('textStyle').fontFamily ?? fonts[0] ?? 'Arial'
+  const currentSize = editor?.getAttributes('textStyle').fontSize?.replace('px', '') ?? '32'
 
   const setFont = (font: string): void => {
-    editor.chain().focus().setFontFamily(font).run()
+    editor?.chain().focus().setFontFamily(font).run()
   }
 
   const setSize = (size: string): void => {
-    editor.chain().focus().setFontSize(`${size}px`).run()
+    editor?.chain().focus().setFontSize(`${size}px`).run()
   }
+
+  const divider = (
+    <div className="mx-1 h-5 w-px shrink-0" style={{ backgroundColor: 'var(--color-border)' }} />
+  )
 
   return (
     <div
-      className="flex flex-wrap items-center gap-1 rounded-t border border-b-0 px-2 py-1.5"
-      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-base)' }}
+      className="flex w-full flex-wrap items-center gap-1 px-3 py-1.5"
+      style={{
+        backgroundColor: 'var(--color-bg-elevated)',
+        opacity: disabled ? 0.45 : 1,
+        pointerEvents: disabled ? 'none' : 'auto'
+      }}
     >
       {/* Font family */}
       <select
@@ -100,14 +107,11 @@ export default function RichToolbar({ editor }: Props): JSX.Element | null {
           borderColor: 'var(--color-border)',
           backgroundColor: 'var(--color-bg-overlay)',
           color: 'var(--color-text-primary)',
-          fontFamily: currentFont,
-          maxWidth: '10rem'
+          maxWidth: '11rem'
         }}
       >
         {fonts.map((f) => (
-          <option key={f} value={f}>
-            {f}
-          </option>
+          <option key={f} value={f}>{f}</option>
         ))}
       </select>
 
@@ -124,19 +128,16 @@ export default function RichToolbar({ editor }: Props): JSX.Element | null {
         }}
       >
         {SIZES.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
+          <option key={s} value={s}>{s}</option>
         ))}
       </select>
 
-      {/* Divider */}
-      <div className="mx-1 h-5 w-px" style={{ backgroundColor: 'var(--color-border)' }} />
+      {divider}
 
       {/* Bold */}
       <ToolbarButton
-        active={editor.isActive('bold')}
-        onClick={() => editor.chain().focus().toggleBold().run()}
+        active={!!editor?.isActive('bold')}
+        onClick={() => editor?.chain().focus().toggleBold().run()}
         title="Bold"
       >
         <strong>B</strong>
@@ -144,41 +145,74 @@ export default function RichToolbar({ editor }: Props): JSX.Element | null {
 
       {/* Italic */}
       <ToolbarButton
-        active={editor.isActive('italic')}
-        onClick={() => editor.chain().focus().toggleItalic().run()}
+        active={!!editor?.isActive('italic')}
+        onClick={() => editor?.chain().focus().toggleItalic().run()}
         title="Italic"
       >
         <em>I</em>
       </ToolbarButton>
 
-      {/* Divider */}
-      <div className="mx-1 h-5 w-px" style={{ backgroundColor: 'var(--color-border)' }} />
+      {/* Underline placeholder */}
+      <ToolbarButton
+        active={false}
+        onClick={() => {}}
+        title="Underline (coming soon)"
+      >
+        <span style={{ textDecoration: 'underline' }}>U</span>
+      </ToolbarButton>
+
+      {divider}
 
       {/* Align left */}
       <ToolbarButton
-        active={editor.isActive({ textAlign: 'left' })}
-        onClick={() => editor.chain().focus().setTextAlign('left').run()}
+        active={!!editor?.isActive({ textAlign: 'left' })}
+        onClick={() => editor?.chain().focus().setTextAlign('left').run()}
         title="Align left"
       >
-        ≡
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+          <rect x="0" y="1" width="14" height="2" rx="1"/>
+          <rect x="0" y="5" width="9" height="2" rx="1"/>
+          <rect x="0" y="9" width="14" height="2" rx="1"/>
+          <rect x="0" y="13" width="7" height="2" rx="1" transform="translate(0 -2)"/>
+        </svg>
       </ToolbarButton>
 
       {/* Align center */}
       <ToolbarButton
-        active={editor.isActive({ textAlign: 'center' })}
-        onClick={() => editor.chain().focus().setTextAlign('center').run()}
+        active={!!editor?.isActive({ textAlign: 'center' })}
+        onClick={() => editor?.chain().focus().setTextAlign('center').run()}
         title="Align center"
       >
-        ☰
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+          <rect x="0" y="1" width="14" height="2" rx="1"/>
+          <rect x="2.5" y="5" width="9" height="2" rx="1"/>
+          <rect x="0" y="9" width="14" height="2" rx="1"/>
+          <rect x="3.5" y="11" width="7" height="2" rx="1"/>
+        </svg>
       </ToolbarButton>
 
       {/* Align right */}
       <ToolbarButton
-        active={editor.isActive({ textAlign: 'right' })}
-        onClick={() => editor.chain().focus().setTextAlign('right').run()}
+        active={!!editor?.isActive({ textAlign: 'right' })}
+        onClick={() => editor?.chain().focus().setTextAlign('right').run()}
         title="Align right"
       >
-        ≡
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+          <rect x="0" y="1" width="14" height="2" rx="1"/>
+          <rect x="5" y="5" width="9" height="2" rx="1"/>
+          <rect x="0" y="9" width="14" height="2" rx="1"/>
+          <rect x="7" y="11" width="7" height="2" rx="1"/>
+        </svg>
+      </ToolbarButton>
+
+      {divider}
+
+      {/* Text color placeholder */}
+      <ToolbarButton active={false} onClick={() => {}} title="Text color (coming soon)">
+        <span className="flex flex-col items-center leading-none">
+          <span className="text-xs font-bold">A</span>
+          <span className="mt-0.5 h-1 w-4 rounded-sm" style={{ backgroundColor: 'var(--color-accent)' }} />
+        </span>
       </ToolbarButton>
     </div>
   )

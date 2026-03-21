@@ -8,6 +8,7 @@ import * as SongsDb from './db/songs'
 
 let controlWindow: BrowserWindow | null = null
 let outputWindow: BrowserWindow | null = null
+const editorWindows = new Map<number, BrowserWindow>()
 
 function createControlWindow(): void {
   controlWindow = new BrowserWindow({
@@ -104,6 +105,53 @@ ipcMain.handle(IPC.CLEAR, () => {
     outputWindow.destroy()
     outputWindow = null
   }
+})
+
+// ── Editor window IPC ─────────────────────────────────────────────────────────
+
+ipcMain.handle(IPC.SONG_OPEN_EDITOR, (_event, songId: number | 'new') => {
+  // For existing songs, if a window is already open just focus it
+  if (songId !== 'new') {
+    const existing = editorWindows.get(songId)
+    if (existing && !existing.isDestroyed()) {
+      existing.focus()
+      return
+    }
+  }
+
+  const win = new BrowserWindow({
+    width: 900,
+    height: 700,
+    title: 'Song Editor',
+    show: false,
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: join(__dirname, '../preload/control.js'),
+      sandbox: false
+    }
+  })
+
+  const param = String(songId) // 'new' or numeric id
+
+  win.on('ready-to-show', () => win.show())
+  win.on('closed', () => {
+    if (songId !== 'new') editorWindows.delete(songId as number)
+  })
+
+  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+    win.loadURL(`${process.env['ELECTRON_RENDERER_URL']}?editor=${param}`)
+  } else {
+    win.loadFile(join(__dirname, '../renderer/index.html'), {
+      query: { editor: param }
+    })
+  }
+
+  if (songId !== 'new') editorWindows.set(songId as number, win)
+})
+
+ipcMain.handle(IPC.EDITOR_CLOSE, (event) => {
+  const win = BrowserWindow.fromWebContents(event.sender)
+  win?.close()
 })
 
 // ── Song IPC ──────────────────────────────────────────────────────────────────

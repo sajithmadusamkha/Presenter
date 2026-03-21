@@ -3,6 +3,7 @@ import type { Slide } from '../App'
 interface Props {
   selectedSlide: Slide | null
   liveSlide: Slide | null
+  width?: number
 }
 
 export default function PreviewPanel({ selectedSlide, liveSlide }: Props): JSX.Element {
@@ -10,10 +11,9 @@ export default function PreviewPanel({ selectedSlide, liveSlide }: Props): JSX.E
 
   return (
     <div
-      className="flex w-72 flex-shrink-0 flex-col border-l"
+      className="flex h-full flex-col"
       style={{
         backgroundColor: 'var(--color-bg-elevated)',
-        borderColor: 'var(--color-border)'
       }}
     >
       <div

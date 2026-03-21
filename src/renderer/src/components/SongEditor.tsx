@@ -1,12 +1,16 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import type { Editor } from '@tiptap/react'
 import type { SongWithSections, SongSection, SectionType } from '../../../shared/song-types'
+import { splitSectionToSlides } from '../lib/split-slides'
+import type { SlidePayload } from '../../../shared/ipc-channels'
 import SectionCard from './SectionCard'
-import SlidesTab from './SlidesTab'
+import RichToolbar from './RichToolbar'
+import ConfirmDialog from './ConfirmDialog'
 
 type EditorTab = 'words' | 'slides'
 
 interface Props {
-  songId: number
+  songId: number | null   // null = new song (not yet in DB)
   onDeleted: () => void
 }
 
@@ -22,8 +26,6 @@ const SECTION_TYPE_DEFAULTS: { type: SectionType; label: string }[] = [
 ]
 
 export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
-  // `saved` = last persisted state from DB
-  // `draft` = local edits not yet saved
   const [saved, setSaved] = useState<SongWithSections | null>(null)
   const [draft, setDraft] = useState<SongWithSections | null>(null)
   const [tagInput, setTagInput] = useState('')
@@ -31,24 +33,44 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
   const [addingSection, setAddingSection] = useState(false)
   const [activeTab, setActiveTab] = useState<EditorTab>('words')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  // The tiptap Editor instance of whichever SectionCard is currently focused
+  const [focusedEditor, setFocusedEditor] = useState<Editor | null>(null)
+  // Which slide is selected in the right-side preview
+  const [selectedSlideIndex, setSelectedSlideIndex] = useState(0)
+  const [titleError, setTitleError] = useState(false)
+  // Track whether this started as a new song (prop is null) even after addSection assigns an id
+  const [createdId, setCreatedId] = useState<number | null>(null)
+
+  const EMPTY_SONG: SongWithSections = { id: 0, title: '', artist: null, tags: [], sections: [], createdAt: '', updatedAt: '' }
 
   const load = useCallback(async () => {
+    if (songId === null) {
+      // New song — start with empty draft, no DB call
+      setSaved(EMPTY_SONG)
+      setDraft(EMPTY_SONG)
+      setTagInput('')
+      setShowDeleteConfirm(false)
+      return
+    }
     const s = await window.presenterSongs.get(songId)
     setSaved(s)
     setDraft(s)
     setTagInput('')
     setShowDeleteConfirm(false)
-  }, [songId])
+  }, [songId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load() }, [load])
 
-  const isDirty = useRef(false)
+  // Derive all slides from current draft sections (for the right-side preview)
+  const allSlides: SlidePayload[] = draft
+    ? draft.sections.flatMap((s) => splitSectionToSlides(s))
+    : []
+  const previewSlide = allSlides[selectedSlideIndex] ?? allSlides[0] ?? null
 
-  // Track whether draft differs from saved
+  // Keep selectedSlideIndex in bounds when sections change
   useEffect(() => {
-    if (!saved || !draft) { isDirty.current = false; return }
-    isDirty.current = JSON.stringify(draft) !== JSON.stringify(saved)
-  })
+    setSelectedSlideIndex((i) => Math.min(i, Math.max(0, allSlides.length - 1)))
+  }, [allSlides.length])
 
   if (!draft || !saved) {
     return (
@@ -58,27 +80,53 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
     )
   }
 
-  const dirty = saved && draft && JSON.stringify(draft) !== JSON.stringify(saved)
+  // isNew = originally opened as new song (not yet committed by user)
+  const isNew = songId === null
+  // effectiveSongId = the real DB id once addSection has created the record
+  const effectiveSongId = songId ?? createdId
+  const dirty = isNew
+    ? draft.title.trim() !== '' || draft.sections.length > 0
+    : JSON.stringify(draft) !== JSON.stringify(saved)
 
-  // ── Save all changes to DB ─────────────────────────────────────────────────
+  const closeWindow = (): void => { window.presenterControl.closeEditor() }
 
-  const handleSave = async (): Promise<void> => {
-    if (!draft) return
+  // ── Save ──────────────────────────────────────────────────────────────────
+
+  const handleSave = async (): Promise<boolean> => {
+    if (!draft.title.trim()) {
+      setTitleError(true)
+      return false
+    }
+    setTitleError(false)
     setSaving(true)
     try {
-      // Save song fields
-      const updatedSong = await window.presenterSongs.update(draft.id, {
-        title: draft.title || 'Untitled',
-        artist: draft.artist ?? undefined,
-        tags: draft.tags
-      })
+      let baseSong: SongWithSections
 
-      // Save all sections
+      if (effectiveSongId === null) {
+        // Truly new — no sections added yet so song not in DB at all
+        const created = await window.presenterSongs.create({ title: draft.title.trim() })
+        const updated = await window.presenterSongs.update(created.id, {
+          title: created.title,
+          artist: draft.artist ?? undefined,
+          tags: draft.tags
+        })
+        baseSong = { ...(updated ?? created), sections: [] }
+        setCreatedId(created.id)
+      } else {
+        // Either an existing song OR a new song that already has a DB record (from addSection)
+        const updated = await window.presenterSongs.update(effectiveSongId, {
+          title: draft.title.trim(),
+          artist: draft.artist ?? undefined,
+          tags: draft.tags
+        })
+        baseSong = { ...(updated ?? draft), sections: [] }
+      }
+
       const savedSections: SongSection[] = []
       for (const section of draft.sections) {
         const s = await window.presenterSongs.upsertSection({
-          id: section.id,
-          songId: draft.id,
+          id: section.id > 0 ? section.id : undefined,
+          songId: baseSong.id,
           type: section.type,
           label: section.label,
           content: section.content,
@@ -87,25 +135,33 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
         savedSections.push(s)
       }
 
-      const newSaved: SongWithSections = {
-        ...(updatedSong ?? draft),
-        sections: savedSections
-      }
+      const newSaved: SongWithSections = { ...baseSong, sections: savedSections }
       setSaved(newSaved)
       setDraft(newSaved)
+      return true
     } finally {
       setSaving(false)
     }
   }
 
-  // ── Cancel: revert draft to last saved ────────────────────────────────────
-
-  const handleCancel = (): void => {
-    setDraft(saved)
-    setTagInput('')
+  // OK = validate title → save if dirty → close
+  const handleOk = async (): Promise<void> => {
+    if (saving) return   // prevent double-click
+    if (!draft.title.trim()) {
+      setTitleError(true)
+      return
+    }
+    if (dirty) {
+      const ok = await handleSave()
+      if (!ok) return
+    }
+    closeWindow()
   }
 
-  // ── Tag management ────────────────────────────────────────────────────────
+  // Cancel = discard and close
+  const handleCancel = (): void => { closeWindow() }
+
+  // ── Tags ──────────────────────────────────────────────────────────────────
 
   const addTag = (): void => {
     const tag = tagInput.trim().toLowerCase()
@@ -118,29 +174,23 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
     setDraft((prev) => prev ? { ...prev, tags: prev.tags.filter((t) => t !== tag) } : prev)
   }
 
-  // ── Section management (draft only) ──────────────────────────────────────
+  // ── Sections ──────────────────────────────────────────────────────────────
 
   const handleSectionChange = (updated: SongSection): void => {
     setDraft((prev) => {
       if (!prev) return prev
-      return {
-        ...prev,
-        sections: prev.sections.map((s) => (s.id === updated.id ? updated : s))
-      }
+      return { ...prev, sections: prev.sections.map((s) => s.id === updated.id ? updated : s) }
     })
   }
 
   const handleSectionDelete = async (id: number): Promise<void> => {
-    // Delete from DB immediately (no undo), then remove from draft+saved
     await window.presenterSongs.deleteSection(id)
-    const removeSectionById = (song: SongWithSections): SongWithSections => ({
+    const remove = (song: SongWithSections): SongWithSections => ({
       ...song,
-      sections: song.sections
-        .filter((s) => s.id !== id)
-        .map((s, i) => ({ ...s, sortOrder: i }))
+      sections: song.sections.filter((s) => s.id !== id).map((s, i) => ({ ...s, sortOrder: i }))
     })
-    setSaved((prev) => prev ? removeSectionById(prev) : prev)
-    setDraft((prev) => prev ? removeSectionById(prev) : prev)
+    setSaved((prev) => prev ? remove(prev) : prev)
+    setDraft((prev) => prev ? remove(prev) : prev)
   }
 
   const handleMoveSection = (index: number, direction: 'up' | 'down'): void => {
@@ -154,72 +204,87 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
   }
 
   const addSection = async (type: SectionType, label: string): Promise<void> => {
-    const saved_section = await window.presenterSongs.upsertSection({
-      songId: draft.id,
-      type,
-      label,
-      content: '',
-      sortOrder: draft.sections.length
+    let targetId: number
+
+    // If this is a new unsaved song with no DB record yet, create it in DB first
+    if (effectiveSongId === null) {
+      const created = await window.presenterSongs.create({
+        title: draft.title.trim() || 'Untitled'
+      })
+      targetId = created.id
+      setCreatedId(created.id)
+      setSaved((prev) => prev ? { ...prev, id: created.id, title: created.title } : prev)
+      setDraft((prev) => prev ? { ...prev, id: created.id, title: created.title } : prev)
+    } else {
+      targetId = effectiveSongId
+    }
+
+    const newSection = await window.presenterSongs.upsertSection({
+      songId: targetId, type, label, content: '', sortOrder: draft.sections.length
     })
-    const addSection_ = (song: SongWithSections): SongWithSections => ({
-      ...song,
-      sections: [...song.sections, saved_section]
+    const add = (song: SongWithSections): SongWithSections => ({
+      ...song, sections: [...song.sections, newSection]
     })
-    setSaved((prev) => prev ? addSection_(prev) : prev)
-    setDraft((prev) => prev ? addSection_(prev) : prev)
+    setSaved((prev) => prev ? add(prev) : prev)
+    setDraft((prev) => prev ? add(prev) : prev)
     setAddingSection(false)
   }
 
   const handleDeleteSong = async (): Promise<void> => {
     await window.presenterSongs.delete(draft.id)
     onDeleted()
+    window.close()
   }
 
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
-      {/* Song header */}
+    <div className="flex h-full flex-col overflow-hidden" style={{ backgroundColor: 'var(--color-bg-base)' }}>
+
+      {/* ── Title row ─────────────────────────────────────────────────────── */}
       <div
-        className="shrink-0 border-b p-4"
+        className="shrink-0 flex items-center gap-3 border-b px-4 py-2"
         style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-elevated)' }}
       >
-        {/* Title */}
-        <input
-          type="text"
-          value={draft.title}
-          onChange={(e) => setDraft((prev) => prev ? { ...prev, title: e.target.value } : prev)}
-          className="mb-2 w-full bg-transparent text-xl font-bold outline-none"
-          style={{ color: 'var(--color-text-primary)' }}
-          placeholder="Song title"
-        />
-
-        {/* Artist */}
+        <div className="flex flex-1 flex-col">
+          <input
+            type="text"
+            value={draft.title}
+            onChange={(e) => {
+              setTitleError(false)
+              setDraft((prev) => prev ? { ...prev, title: e.target.value } : prev)
+            }}
+            className="bg-transparent text-base font-bold outline-none"
+            style={{
+              color: 'var(--color-text-primary)',
+              borderBottom: titleError ? '1px solid #dc2626' : '1px solid transparent'
+            }}
+            placeholder="Song title *"
+          />
+          {titleError && (
+            <span className="mt-0.5 text-xs" style={{ color: '#dc2626' }}>
+              Title is required
+            </span>
+          )}
+        </div>
         <input
           type="text"
           value={draft.artist ?? ''}
           onChange={(e) => setDraft((prev) => prev ? { ...prev, artist: e.target.value } : prev)}
-          className="mb-3 w-full bg-transparent text-sm outline-none"
+          className="w-40 bg-transparent text-sm outline-none"
           style={{ color: 'var(--color-text-muted)' }}
-          placeholder="Artist / Author"
+          placeholder="Artist"
         />
-
-        {/* Tags */}
-        <div className="flex flex-wrap items-center gap-1.5">
+        {/* Tags inline */}
+        <div className="flex flex-wrap items-center gap-1">
           {draft.tags.map((tag) => (
             <span
               key={tag}
-              className="flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs"
+              className="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs"
               style={{ backgroundColor: 'var(--color-bg-overlay)', color: 'var(--color-accent)' }}
             >
               {tag}
-              <button
-                onClick={() => removeTag(tag)}
-                className="opacity-60 hover:opacity-100"
-                style={{ color: 'var(--color-text-muted)' }}
-              >
-                ×
-              </button>
+              <button onClick={() => removeTag(tag)} className="opacity-60 hover:opacity-100" style={{ color: 'var(--color-text-muted)' }}>×</button>
             </span>
           ))}
           <input
@@ -230,12 +295,20 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
             onBlur={addTag}
             placeholder="+ tag"
             className="bg-transparent text-xs outline-none"
-            style={{ color: 'var(--color-text-muted)', width: '4rem' }}
+            style={{ color: 'var(--color-text-muted)', width: '3.5rem' }}
           />
         </div>
       </div>
 
-      {/* Tab bar */}
+      {/* ── Global RichToolbar (tracks focused section editor) ────────────── */}
+      <div
+        className="shrink-0 border-b"
+        style={{ borderColor: 'var(--color-border)' }}
+      >
+        <RichToolbar editor={focusedEditor} />
+      </div>
+
+      {/* ── Tab bar ───────────────────────────────────────────────────────── */}
       <div
         className="shrink-0 flex border-b"
         style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-elevated)' }}
@@ -256,148 +329,212 @@ export default function SongEditor({ songId, onDeleted }: Props): JSX.Element {
         ))}
       </div>
 
-      {/* Tab content */}
-      {activeTab === 'slides' ? (
-        <SlidesTab sections={draft.sections} />
-      ) : (
-        <>
-          {/* Words tab: section list */}
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="flex flex-col gap-3">
-              {draft.sections.length === 0 && !addingSection && (
-                <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-                  No sections yet. Add one below.
-                </p>
-              )}
+      {/* ── Main body: left list + right preview ──────────────────────────── */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
 
-              {draft.sections.map((section, index) => (
-                <SectionCard
-                  key={section.id}
-                  section={section}
-                  isFirst={index === 0}
-                  isLast={index === draft.sections.length - 1}
-                  onChange={handleSectionChange}
-                  onDelete={() => handleSectionDelete(section.id)}
-                  onMoveUp={() => handleMoveSection(index, 'up')}
-                  onMoveDown={() => handleMoveSection(index, 'down')}
-                />
-              ))}
-
-              {/* Add section */}
-              {addingSection ? (
-                <div
-                  className="rounded border p-3"
-                  style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-elevated)' }}
-                >
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
-                    Choose section type
+        {/* Left: section list (Words) or slide list (Slides) */}
+        <div
+          className="flex w-80 shrink-0 flex-col overflow-hidden border-r"
+          style={{ borderColor: 'var(--color-border)', minWidth: 0 }}
+        >
+          {activeTab === 'slides' ? (
+            /* Slides tab: slide cards */
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-3">
+              {allSlides.length === 0 ? (
+                <div className="flex h-full items-center justify-center">
+                  <p className="text-center text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                    No slides yet.<br />Add sections in Words tab.
                   </p>
-                  <div className="flex flex-wrap gap-2">
-                    {SECTION_TYPE_DEFAULTS.map(({ type, label }) => (
-                      <button
-                        key={type}
-                        onClick={() => addSection(type, label)}
-                        className="rounded px-3 py-1.5 text-sm transition-colors"
-                        style={{
-                          backgroundColor: 'var(--color-bg-overlay)',
-                          color: 'var(--color-text-primary)',
-                          border: '1px solid var(--color-border)'
-                        }}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                    <button
-                      onClick={() => setAddingSection(false)}
-                      className="rounded px-3 py-1.5 text-sm"
-                      style={{ color: 'var(--color-text-muted)' }}
-                    >
-                      Cancel
-                    </button>
-                  </div>
                 </div>
               ) : (
-                <button
-                  onClick={() => setAddingSection(true)}
-                  className="rounded border border-dashed py-2 text-sm transition-colors"
-                  style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
-                >
-                  + Add Section
-                </button>
+                <div className="flex flex-col gap-2">
+                  {allSlides.map((slide, i) => (
+                    <button
+                      key={slide.id}
+                      onClick={() => setSelectedSlideIndex(i)}
+                      className="w-full rounded-lg border text-left transition-colors"
+                      style={{
+                        borderColor: i === selectedSlideIndex ? 'var(--color-accent)' : 'var(--color-border)',
+                        backgroundColor: 'var(--color-bg-overlay)',
+                        boxShadow: i === selectedSlideIndex ? '0 0 0 1px var(--color-accent)' : 'none'
+                      }}
+                    >
+                      {/* Mini slide preview — 16:9 black area */}
+                      <div
+                        className="flex w-full items-center justify-center rounded-t-lg px-4 py-5"
+                        style={{ backgroundColor: '#000', aspectRatio: '16/9' }}
+                      >
+                        <p
+                          className="line-clamp-3 whitespace-pre-line text-center text-xs leading-relaxed"
+                          style={{ color: '#fff' }}
+                        >
+                          {slide.body.replace(/<[^>]+>/g, '')}
+                        </p>
+                      </div>
+                      {/* Label */}
+                      <div className="px-3 py-2">
+                        <p className="truncate text-xs font-semibold" style={{ color: 'var(--color-accent)' }}>
+                          {slide.title}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
-          </div>
+          ) : (
+            /* Words tab: section cards */
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-3">
+              <div className="flex flex-col gap-3">
+                {draft.sections.length === 0 && !addingSection && (
+                  <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
+                    No sections yet. Add one below.
+                  </p>
+                )}
+                {draft.sections.map((section, index) => (
+                  <SectionCard
+                    key={section.id}
+                    section={section}
+                    isFirst={index === 0}
+                    isLast={index === draft.sections.length - 1}
+                    onChange={handleSectionChange}
+                    onDelete={() => handleSectionDelete(section.id)}
+                    onMoveUp={() => handleMoveSection(index, 'up')}
+                    onMoveDown={() => handleMoveSection(index, 'down')}
+                    onFocusEditor={setFocusedEditor}
+                  />
+                ))}
 
-          {/* Footer */}
-          <div
-            className="shrink-0 border-t px-4 py-3"
-            style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-elevated)' }}
-          >
-            {showDeleteConfirm ? (
-              /* Delete confirmation */
-              <div className="flex items-center justify-between">
-                <span className="text-sm" style={{ color: 'var(--color-text-primary)' }}>
-                  Delete &ldquo;{draft.title}&rdquo;? This cannot be undone.
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="rounded px-3 py-1.5 text-xs transition-colors"
-                    style={{ color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}
+                {addingSection ? (
+                  <div
+                    className="rounded border p-3"
+                    style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-elevated)' }}
                   >
-                    Cancel
-                  </button>
+                    <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
+                      Choose section type
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {SECTION_TYPE_DEFAULTS.map(({ type, label }) => (
+                        <button
+                          key={type}
+                          onClick={() => addSection(type, label)}
+                          className="rounded px-3 py-1.5 text-sm transition-colors"
+                          style={{ backgroundColor: 'var(--color-bg-overlay)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)' }}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => setAddingSection(false)}
+                        className="rounded px-3 py-1.5 text-sm"
+                        style={{ color: 'var(--color-text-muted)' }}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                   <button
-                    onClick={handleDeleteSong}
-                    className="rounded px-3 py-1.5 text-xs font-medium transition-colors"
-                    style={{ backgroundColor: '#dc2626', color: '#fff', border: '1px solid #dc2626' }}
+                    onClick={() => setAddingSection(true)}
+                    className="rounded border border-dashed py-2 text-sm transition-colors"
+                    style={{ borderColor: 'var(--color-border)', color: 'var(--color-text-muted)' }}
                   >
-                    Delete
+                    + Add Section
                   </button>
-                </div>
+                )}
               </div>
-            ) : (
-              /* Normal footer: Save / Cancel / Delete */
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="text-xs transition-colors hover:text-red-400"
-                  style={{ color: 'var(--color-text-muted)' }}
+            </div>
+          )}
+        </div>
+
+        {/* Right: always-visible slide preview */}
+        <div className="flex flex-1 flex-col overflow-hidden bg-black">
+          {previewSlide ? (
+            <div className="flex h-full flex-col items-center justify-center px-12">
+              {previewSlide.body.trimStart().startsWith('<') ? (
+                <div
+                  className="slide-body text-center leading-relaxed"
+                  style={{ color: '#ffffff', fontSize: '2rem' }}
+                  dangerouslySetInnerHTML={{ __html: previewSlide.body }}
+                />
+              ) : (
+                <p
+                  className="whitespace-pre-line text-center leading-relaxed"
+                  style={{ color: '#ffffff', fontSize: '2rem' }}
                 >
-                  Delete song
-                </button>
-                <div className="flex items-center gap-2">
-                  {saving && (
-                    <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                      Saving…
-                    </span>
-                  )}
-                  {dirty && !saving && (
-                    <button
-                      onClick={handleCancel}
-                      className="rounded px-3 py-1.5 text-xs transition-colors"
-                      style={{ color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}
-                    >
-                      Cancel
-                    </button>
-                  )}
-                  <button
-                    onClick={handleSave}
-                    disabled={saving || !dirty}
-                    className="rounded px-4 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
-                    style={{
-                      backgroundColor: dirty && !saving ? 'var(--color-accent)' : 'var(--color-bg-overlay)',
-                      color: dirty && !saving ? '#fff' : 'var(--color-text-muted)',
-                      border: '1px solid ' + (dirty && !saving ? 'var(--color-accent)' : 'var(--color-border)')
-                    }}
-                  >
-                    Save
-                  </button>
-                </div>
-              </div>
+                  {previewSlide.body}
+                </p>
+              )}
+              {previewSlide.title && (
+                <p
+                  className="absolute bottom-4 right-4 text-xs"
+                  style={{ color: 'rgba(255,255,255,0.3)' }}
+                >
+                  {previewSlide.title}
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <p className="text-sm" style={{ color: '#4b5563' }}>
+                {draft.sections.length === 0 ? 'Add sections to see a preview' : 'No slides'}
+              </p>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* ── Footer ────────────────────────────────────────────────────────── */}
+      <div
+        className="shrink-0 border-t px-4 py-3"
+        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-elevated)', position: 'relative', zIndex: 10 }}
+      >
+        <div className="flex items-center justify-between">
+          {!isNew ? (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="text-xs transition-colors hover:text-red-400"
+              style={{ color: 'var(--color-text-muted)' }}
+            >
+              Delete song
+            </button>
+          ) : (
+            <span />
+          )}
+          <div className="flex items-center gap-2">
+            {saving && (
+              <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>Saving…</span>
             )}
+            <button
+              onClick={handleCancel}
+              className="rounded px-4 py-1.5 text-xs"
+              style={{ color: 'var(--color-text-muted)', border: '1px solid var(--color-border)' }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleOk}
+              disabled={saving}
+              className="rounded px-4 py-1.5 text-xs font-medium disabled:opacity-40"
+              style={{ backgroundColor: 'var(--color-accent)', color: '#fff' }}
+            >
+              OK
+            </button>
           </div>
-        </>
+        </div>
+      </div>
+
+      {/* ── Delete confirmation ────────────────────────────────────────────── */}
+      {showDeleteConfirm && (
+        <ConfirmDialog
+          title={`Delete "${draft.title || 'Untitled'}"`}
+          message="This song will be permanently deleted. This cannot be undone."
+          confirmLabel="Delete"
+          danger
+          onConfirm={handleDeleteSong}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
       )}
     </div>
   )

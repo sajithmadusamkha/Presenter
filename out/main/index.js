@@ -17,7 +17,10 @@ const IPC = {
   // Section CRUD
   SECTION_UPSERT: "song:section:upsert",
   SECTION_DELETE: "song:section:delete",
-  SECTION_REORDER: "song:section:reorder"
+  SECTION_REORDER: "song:section:reorder",
+  // Editor window
+  SONG_OPEN_EDITOR: "song:open-editor",
+  EDITOR_CLOSE: "editor:close"
 };
 let db;
 function initDb() {
@@ -161,6 +164,7 @@ function reorderSections(db2, songId, orderedIds) {
 }
 let controlWindow = null;
 let outputWindow = null;
+const editorWindows = /* @__PURE__ */ new Map();
 function createControlWindow() {
   controlWindow = new electron.BrowserWindow({
     width: 1400,
@@ -242,6 +246,43 @@ electron.ipcMain.handle(IPC.CLEAR, () => {
     outputWindow.destroy();
     outputWindow = null;
   }
+});
+electron.ipcMain.handle(IPC.SONG_OPEN_EDITOR, (_event, songId) => {
+  if (songId !== "new") {
+    const existing = editorWindows.get(songId);
+    if (existing && !existing.isDestroyed()) {
+      existing.focus();
+      return;
+    }
+  }
+  const win = new electron.BrowserWindow({
+    width: 900,
+    height: 700,
+    title: "Song Editor",
+    show: false,
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, "../preload/control.js"),
+      sandbox: false
+    }
+  });
+  const param = String(songId);
+  win.on("ready-to-show", () => win.show());
+  win.on("closed", () => {
+    if (songId !== "new") editorWindows.delete(songId);
+  });
+  if (utils.is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+    win.loadURL(`${process.env["ELECTRON_RENDERER_URL"]}?editor=${param}`);
+  } else {
+    win.loadFile(path.join(__dirname, "../renderer/index.html"), {
+      query: { editor: param }
+    });
+  }
+  if (songId !== "new") editorWindows.set(songId, win);
+});
+electron.ipcMain.handle(IPC.EDITOR_CLOSE, (event) => {
+  const win = electron.BrowserWindow.fromWebContents(event.sender);
+  win?.close();
 });
 electron.ipcMain.handle(
   IPC.SONG_LIST,

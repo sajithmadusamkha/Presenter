@@ -1,12 +1,13 @@
 import { useRef, useEffect } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
+import type { Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import TextAlign from '@tiptap/extension-text-align'
 import { FontFamily, FontSize, TextStyle } from '@tiptap/extension-text-style'
 import type { SongSection, SectionType } from '../../../shared/song-types'
 import { SECTION_TYPE_LABELS } from '../../../shared/song-types'
 import { countSlides } from '../lib/split-slides'
-import RichToolbar from './RichToolbar'
 
 const SECTION_TYPES = Object.keys(SECTION_TYPE_LABELS) as SectionType[]
 
@@ -29,6 +30,7 @@ interface Props {
   onDelete: () => void
   onMoveUp: () => void
   onMoveDown: () => void
+  onFocusEditor: Dispatch<SetStateAction<Editor | null>>
 }
 
 export default function SectionCard({
@@ -38,13 +40,11 @@ export default function SectionCard({
   onChange,
   onDelete,
   onMoveUp,
-  onMoveDown
+  onMoveDown,
+  onFocusEditor
 }: Props): JSX.Element {
   const slideCount = countSlides(section)
 
-  // Keep a stable ref to the latest section + onChange so the editor's onUpdate
-  // never closes over stale values, which would cause the editor to be destroyed
-  // and recreated on every save.
   const latestRef = useRef({ section, onChange })
   latestRef.current = { section, onChange }
 
@@ -60,10 +60,13 @@ export default function SectionCard({
     onUpdate: ({ editor: e }) => {
       const { section: s, onChange: cb } = latestRef.current
       cb({ ...s, content: e.getHTML() })
+    },
+    onFocus: ({ editor: e }) => {
+      onFocusEditor(e)
     }
   })
 
-  // Sync content only when the section id changes (different section loaded)
+  // Sync content only when the section id changes
   useEffect(() => {
     if (!editor) return
     editor.commands.setContent(section.content || '', false)
@@ -76,10 +79,10 @@ export default function SectionCard({
   return (
     <div
       className="rounded border"
-      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-elevated)' }}
+      style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-elevated)', minWidth: 0 }}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2">
+      <div className="flex min-w-0 items-center gap-2 px-3 py-2">
         {/* Type badge */}
         <span
           className="rounded px-2 py-0.5 text-xs font-semibold"
@@ -88,7 +91,7 @@ export default function SectionCard({
           <select
             value={section.type}
             onChange={(e) => handleField('type', e.target.value as SectionType)}
-            className="bg-transparent text-xs font-semibold outline-none cursor-pointer"
+            className="cursor-pointer bg-transparent text-xs font-semibold outline-none"
             style={{ color: TYPE_COLORS[section.type] }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -105,7 +108,7 @@ export default function SectionCard({
           type="text"
           value={section.label}
           onChange={(e) => handleField('label', e.target.value)}
-          className="flex-1 bg-transparent text-sm font-medium outline-none"
+          className="min-w-0 flex-1 bg-transparent text-sm font-medium outline-none"
           style={{ color: 'var(--color-text-primary)' }}
           onClick={(e) => e.stopPropagation()}
         />
@@ -151,9 +154,8 @@ export default function SectionCard({
         </div>
       </div>
 
-      {/* Rich text editor */}
+      {/* Rich text editor (no toolbar — toolbar is lifted to SongEditor) */}
       <div className="px-3 pb-3">
-        <RichToolbar editor={editor} />
         <EditorContent editor={editor} className="tiptap-editor" />
       </div>
     </div>

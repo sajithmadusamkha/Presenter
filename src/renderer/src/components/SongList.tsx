@@ -1,24 +1,31 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { Song } from '../../../shared/song-types'
+import ConfirmDialog from './ConfirmDialog'
+
+interface ContextMenu {
+  x: number
+  y: number
+  song: Song
+}
 
 interface Props {
-  selectedId: number | null
-  onSelect: (song: Song) => void
   onCreated: (song: Song) => void
   refreshKey: number
 }
 
-export default function SongList({ selectedId, onSelect, onCreated, refreshKey }: Props): JSX.Element {
+export default function SongList({ onCreated, refreshKey }: Props): JSX.Element {
   const [songs, setSongs] = useState<Song[]>([])
   const [search, setSearch] = useState('')
   const [tagFilter, setTagFilter] = useState<string>('')
+  const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null)
+  const [deletingSong, setDeletingSong] = useState<Song | null>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
-    const query = {
+    const result = await window.presenterSongs.list({
       search: search.trim() || undefined,
       tags: tagFilter ? [tagFilter] : undefined
-    }
-    const result = await window.presenterSongs.list(query)
+    })
     setSongs(result)
   }, [search, tagFilter])
 
@@ -30,6 +37,18 @@ export default function SongList({ selectedId, onSelect, onCreated, refreshKey }
     return () => clearTimeout(t)
   }, [search, load])
 
+  // Close context menu on outside click
+  useEffect(() => {
+    if (!contextMenu) return
+    const handler = (e: MouseEvent): void => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setContextMenu(null)
+      }
+    }
+    window.addEventListener('mousedown', handler)
+    return () => window.removeEventListener('mousedown', handler)
+  }, [contextMenu])
+
   // All unique tags across songs
   const [allTags, setAllTags] = useState<string[]>([])
   useEffect(() => {
@@ -38,15 +57,45 @@ export default function SongList({ selectedId, onSelect, onCreated, refreshKey }
     setAllTags([...tags].sort())
   }, [songs])
 
+  // Refresh list when window regains focus (editor window may have saved a new song)
+  useEffect(() => {
+    const onFocus = (): void => { load() }
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [load])
+
   const handleCreate = async (): Promise<void> => {
-    const song = await window.presenterSongs.create({ title: 'Untitled Song' })
-    setSongs((prev) => [song, ...prev])
-    onCreated(song)
+    await window.presenterControl.openSongEditor('new')
+  }
+
+  const handleContextMenu = (e: React.MouseEvent, song: Song): void => {
+    e.preventDefault()
+    setContextMenu({ x: e.clientX, y: e.clientY, song })
+  }
+
+  const handleEdit = async (): Promise<void> => {
+    if (!contextMenu) return
+    setContextMenu(null)
+    await window.presenterControl.openSongEditor(contextMenu.song.id)
+  }
+
+  const handleDeleteConfirm = (): void => {
+    if (!contextMenu) return
+    setDeletingSong(contextMenu.song)
+    setContextMenu(null)
+  }
+
+  const handleDelete = async (): Promise<void> => {
+    if (!deletingSong) return
+    const song = deletingSong
+    setDeletingSong(null)
+    await window.presenterSongs.delete(song.id)
+    setSongs((prev) => prev.filter((s) => s.id !== song.id))
   }
 
   return (
     <div
-      className="flex w-72 flex-shrink-0 flex-col border-r"
+      className="flex h-full flex-col overflow-hidden"
       style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-bg-elevated)' }}
     >
       {/* Search */}
@@ -96,45 +145,38 @@ export default function SongList({ selectedId, onSelect, onCreated, refreshKey }
             {search || tagFilter ? 'No songs match.' : 'No songs yet.'}
           </p>
         ) : (
-          songs.map((song) => {
-            const isSelected = song.id === selectedId
-            return (
-              <button
-                key={song.id}
-                onClick={() => onSelect(song)}
-                className="w-full px-4 py-3 text-left transition-colors"
-                style={{
-                  backgroundColor: isSelected ? 'var(--color-bg-overlay)' : 'transparent',
-                  borderLeft: isSelected ? '2px solid var(--color-accent)' : '2px solid transparent'
-                }}
-              >
-                <p
-                  className="truncate text-sm font-medium"
-                  style={{ color: isSelected ? 'var(--color-text-primary)' : 'var(--color-text-muted)' }}
-                >
-                  {song.title}
+          songs.map((song) => (
+            <div
+              key={song.id}
+              onContextMenu={(e) => handleContextMenu(e, song)}
+              className="w-full cursor-default px-4 py-3 text-left transition-colors select-none"
+              style={{ backgroundColor: 'transparent' }}
+              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-bg-overlay)')}
+              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <p className="truncate text-sm font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                {song.title}
+              </p>
+              {song.artist && (
+                <p className="mt-0.5 truncate text-xs" style={{ color: 'var(--color-text-muted)' }}>
+                  {song.artist}
                 </p>
-                {song.artist && (
-                  <p className="mt-0.5 truncate text-xs" style={{ color: 'var(--color-text-muted)' }}>
-                    {song.artist}
-                  </p>
-                )}
-                {song.tags.length > 0 && (
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {song.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full px-1.5 py-0.5 text-xs"
-                        style={{ backgroundColor: 'var(--color-bg-base)', color: 'var(--color-accent)' }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </button>
-            )
-          })
+              )}
+              {song.tags.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {song.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full px-1.5 py-0.5 text-xs"
+                      style={{ backgroundColor: 'var(--color-bg-base)', color: 'var(--color-accent)' }}
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))
         )}
       </div>
 
@@ -148,6 +190,58 @@ export default function SongList({ selectedId, onSelect, onCreated, refreshKey }
           + New Song
         </button>
       </div>
+
+      {/* Context menu */}
+      {contextMenu && (
+        <div
+          ref={menuRef}
+          className="fixed z-50 overflow-hidden rounded border py-1 shadow-lg"
+          style={{
+            top: contextMenu.y,
+            left: contextMenu.x,
+            backgroundColor: 'var(--color-bg-overlay)',
+            borderColor: 'var(--color-border)',
+            minWidth: '140px'
+          }}
+        >
+          <div
+            className="truncate px-3 py-1.5 text-xs font-semibold"
+            style={{ color: 'var(--color-text-muted)' }}
+          >
+            {contextMenu.song.title}
+          </div>
+          <div className="my-1 border-t" style={{ borderColor: 'var(--color-border)' }} />
+          <button
+            onClick={handleEdit}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
+            style={{ color: 'var(--color-text-primary)' }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-bg-elevated)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            Edit
+          </button>
+          <button
+            onClick={handleDeleteConfirm}
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors"
+            style={{ color: '#f87171' }}
+            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--color-bg-elevated)')}
+            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            Delete
+          </button>
+        </div>
+      )}
+
+      {deletingSong && (
+        <ConfirmDialog
+          title={`Delete "${deletingSong.title}"`}
+          message="This song will be permanently deleted. This cannot be undone."
+          confirmLabel="Delete"
+          danger
+          onConfirm={handleDelete}
+          onCancel={() => setDeletingSong(null)}
+        />
+      )}
     </div>
   )
 }
